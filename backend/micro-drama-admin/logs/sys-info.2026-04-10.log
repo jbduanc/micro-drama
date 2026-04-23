@@ -1,0 +1,283 @@
+[32m11:35:07.465 [main] INFO  c.a.n.c.c.i.LocalConfigInfoProcessor - [<clinit>,195][0;39m : LOCAL_SNAPSHOT_PATH:C:\Users\Administrator\nacos\config
+[32m11:35:07.601 [main] INFO  c.a.n.c.c.i.Limiter - [<clinit>,53][0;39m : limitTime:5.0
+[32m11:35:13.642 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m11:35:16.652 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m11:35:16.652 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m11:35:16.854 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m11:35:17.187 [main] INFO  c.a.n.client.naming - [call,56][0;39m : initializer namespace from System Property :null
+[32m11:35:17.188 [main] INFO  c.a.n.client.naming - [call,65][0;39m : initializer namespace from System Environment :null
+[32m11:35:17.189 [main] INFO  c.a.n.client.naming - [call,75][0;39m : initializer namespace from System Property :null
+[32m11:35:17.250 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m11:35:17.542 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m11:35:18.002 [main] INFO  o.m.driver.cluster - [info,71][0;39m : Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+[32m11:35:19.522 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m11:35:19.523 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m11:35:19.526 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m11:36:08.899 [main] INFO  c.a.n.c.c.i.LocalConfigInfoProcessor - [<clinit>,195][0;39m : LOCAL_SNAPSHOT_PATH:C:\Users\Administrator\nacos\config
+[32m11:36:08.917 [main] INFO  c.a.n.c.c.i.Limiter - [<clinit>,53][0;39m : limitTime:5.0
+[32m11:36:14.935 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m11:36:16.095 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m11:36:16.095 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m11:36:16.192 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m11:36:16.388 [main] INFO  c.a.n.client.naming - [call,56][0;39m : initializer namespace from System Property :null
+[32m11:36:16.389 [main] INFO  c.a.n.client.naming - [call,65][0;39m : initializer namespace from System Environment :null
+[32m11:36:16.389 [main] INFO  c.a.n.client.naming - [call,75][0;39m : initializer namespace from System Property :null
+[32m11:36:16.406 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m11:36:16.469 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m11:36:16.702 [main] INFO  o.m.driver.cluster - [info,71][0;39m : Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+[32m11:36:17.500 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m11:36:17.502 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m11:36:17.503 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m11:54:37.516 [main] INFO  c.a.n.c.c.i.LocalConfigInfoProcessor - [<clinit>,195][0;39m : LOCAL_SNAPSHOT_PATH:C:\Users\Administrator\nacos\config
+[32m11:54:37.539 [main] INFO  c.a.n.c.c.i.Limiter - [<clinit>,53][0;39m : limitTime:5.0
+[32m11:54:43.568 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m11:54:44.879 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m11:54:44.879 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m11:54:44.982 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m11:54:45.198 [main] INFO  c.a.n.client.naming - [call,56][0;39m : initializer namespace from System Property :null
+[32m11:54:45.198 [main] INFO  c.a.n.client.naming - [call,65][0;39m : initializer namespace from System Environment :null
+[32m11:54:45.199 [main] INFO  c.a.n.client.naming - [call,75][0;39m : initializer namespace from System Property :null
+[32m11:54:45.219 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m11:54:45.290 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m11:54:45.525 [main] INFO  o.m.driver.cluster - [info,71][0;39m : Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+[32m11:54:46.578 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m11:54:46.579 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m11:54:46.581 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m11:59:51.037 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m11:59:52.314 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m11:59:52.314 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m11:59:52.411 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m11:59:52.531 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m11:59:52.603 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m11:59:52.836 [main] INFO  o.m.driver.cluster - [info,71][0;39m : Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+[32m11:59:53.747 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m11:59:53.748 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m11:59:53.750 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m15:13:09.278 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m15:13:12.280 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m15:13:12.281 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m15:13:12.473 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m15:13:12.604 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m15:13:12.941 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m15:13:13.412 [main] INFO  o.m.driver.cluster - [info,71][0;39m : Cluster created with settings {hosts=[localhost:27017], mode=SINGLE, requiredClusterType=UNKNOWN, serverSelectionTimeout='30000 ms', maxWaitQueueSize=500}
+[32m15:13:14.951 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m15:13:14.953 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m15:13:14.955 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m15:15:11.244 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m15:15:12.448 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m15:15:12.448 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m15:15:12.540 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m15:15:12.656 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m15:15:12.725 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m15:15:13.463 [main] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m15:15:13.464 [main] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m15:15:13.465 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Stopping service [Tomcat]
+[32m15:17:39.936 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m15:17:41.126 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m15:17:41.126 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m15:17:41.218 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m15:17:41.333 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m15:17:41.405 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m15:17:42.513 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m15:17:42.533 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m15:17:43.903 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 4.61 seconds (JVM running for 5.721)
+[32m15:17:44.514 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m15:17:46.905 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m15:17:46.907 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:11:52.754 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m16:11:52.756 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m16:15:09.227 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:15:10.457 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:15:10.457 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:15:10.552 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:15:10.667 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:15:10.739 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:15:11.631 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:15:11.635 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:15:12.444 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.942 seconds (JVM running for 5.259)
+[32m16:15:13.015 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:15:15.630 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:15:15.632 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:30:24.469 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:30:25.693 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:30:25.693 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:30:25.788 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:30:25.904 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:30:25.972 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:30:26.851 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:30:26.854 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:30:27.682 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.876 seconds (JVM running for 4.876)
+[32m16:30:28.036 [RMI TCP Connection(1)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:30:31.197 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:30:31.198 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:31:39.147 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m16:32:07.980 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:32:09.197 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:32:09.197 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:32:09.290 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:32:09.406 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:32:09.476 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:32:10.354 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:32:10.357 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:32:11.173 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.847 seconds (JVM running for 4.869)
+[32m16:32:11.522 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:32:13.514 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:32:13.516 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:42:10.720 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:42:11.944 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:42:11.944 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:42:12.040 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:42:12.156 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:42:12.224 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:42:13.092 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:42:13.096 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:42:13.912 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.845 seconds (JVM running for 4.98)
+[32m16:42:14.259 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:42:16.193 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:42:16.195 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:44:23.648 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:44:24.856 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:44:24.856 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:44:24.949 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:44:25.066 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:44:25.136 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:44:26.006 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:44:26.009 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:44:26.810 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.823 seconds (JVM running for 4.886)
+[32m16:44:27.203 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:44:29.589 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:44:29.590 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:52:41.307 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:52:42.587 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:52:42.588 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:52:42.684 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:52:42.819 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:52:42.894 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:52:43.789 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:52:43.792 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:52:44.622 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 4.065 seconds (JVM running for 5.137)
+[32m16:52:44.756 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:52:47.659 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:52:47.660 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m16:56:05.019 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m16:56:06.230 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m16:56:06.230 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m16:56:06.323 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m16:56:06.440 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m16:56:06.508 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m16:56:07.425 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:56:07.428 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m16:56:08.231 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.916 seconds (JVM running for 4.913)
+[32m16:56:08.604 [RMI TCP Connection(1)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m16:56:12.026 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m16:56:12.027 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:27:23.187 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m17:27:23.188 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m17:27:46.693 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:27:47.912 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:27:47.912 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:27:48.006 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:27:48.129 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:27:48.207 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:27:49.090 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:27:49.093 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:27:49.918 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.889 seconds (JVM running for 4.933)
+[32m17:27:50.250 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:27:53.104 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:27:53.105 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:32:04.767 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m17:32:04.769 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m17:32:12.030 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:32:13.245 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:32:13.245 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:32:13.339 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:32:13.456 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:32:13.525 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:32:14.395 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:32:14.398 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:32:15.208 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.859 seconds (JVM running for 4.945)
+[32m17:32:15.574 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:32:18.106 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:32:18.107 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:33:56.925 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m17:33:56.926 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m17:34:03.482 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:34:04.720 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:34:04.720 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:34:04.815 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:34:04.934 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:34:05.003 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:34:05.878 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:34:05.881 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:34:06.704 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.907 seconds (JVM running for 4.95)
+[32m17:34:07.044 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:34:09.417 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:34:09.418 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:37:12.323 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m17:37:12.324 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m17:37:36.555 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:37:37.783 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:37:37.783 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:37:37.876 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:37:37.995 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:37:38.066 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:37:38.956 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:37:38.959 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:37:39.785 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.89 seconds (JVM running for 4.918)
+[32m17:37:40.142 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:37:42.614 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:37:42.615 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:45:26.709 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:45:27.928 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:45:27.928 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:45:28.023 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:45:28.146 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:45:28.217 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:45:29.095 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:45:29.097 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:45:29.912 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.903 seconds (JVM running for 4.998)
+[32m17:45:30.163 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:45:34.522 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:45:34.524 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m17:58:15.085 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m17:58:15.086 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m17:59:24.384 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m17:59:25.609 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m17:59:25.610 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m17:59:25.703 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m17:59:25.817 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m17:59:25.888 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m17:59:26.757 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:59:26.761 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m17:59:27.562 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.841 seconds (JVM running for 4.893)
+[32m17:59:27.900 [RMI TCP Connection(1)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m17:59:29.925 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m17:59:29.926 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m18:29:03.574 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m18:29:03.575 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m18:29:47.262 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m18:29:48.481 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m18:29:48.481 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m18:29:48.589 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m18:29:48.707 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m18:29:48.777 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m18:29:49.666 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m18:29:49.670 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m18:29:50.490 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.891 seconds (JVM running for 4.981)
+[32m18:29:50.820 [RMI TCP Connection(3)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m18:29:52.862 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m18:29:52.863 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m18:32:30.528 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m18:32:30.530 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m18:32:50.774 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m18:32:51.979 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m18:32:51.979 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m18:32:52.073 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m18:32:52.193 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m18:32:52.261 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m18:32:53.135 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m18:32:53.138 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m18:32:53.957 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.841 seconds (JVM running for 4.855)
+[32m18:32:54.306 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m18:32:56.350 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m18:32:56.351 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library

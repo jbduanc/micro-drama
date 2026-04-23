@@ -1,0 +1,42 @@
+[32m09:29:40.373 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m09:29:43.555 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m09:29:43.555 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m09:29:43.709 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m09:29:43.842 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m09:29:44.026 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m09:29:45.584 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m09:29:45.589 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m09:29:46.738 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 7.824 seconds (JVM running for 13.802)
+[32m09:29:47.102 [RMI TCP Connection(1)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m09:29:49.610 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m09:29:49.611 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m09:30:30.006 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m09:30:30.010 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m09:30:45.757 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m09:30:47.007 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m09:30:47.007 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m09:30:47.104 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m09:30:47.224 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m09:30:47.302 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m09:30:48.227 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m09:30:48.230 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m09:30:49.068 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 3.998 seconds (JVM running for 5.18)
+[32m09:30:49.215 [RMI TCP Connection(2)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m09:30:51.744 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m09:30:51.744 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m09:41:11.259 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m09:41:11.261 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
+[32m10:03:19.351 [main] INFO  c.s.a.AdminApplication - [logStartupProfileInfo,655][0;39m : The following profiles are active: local
+[32m10:03:20.594 [main] INFO  o.a.c.c.StandardService - [log,173][0;39m : Starting service [Tomcat]
+[32m10:03:20.595 [main] INFO  o.a.c.c.StandardEngine - [log,173][0;39m : Starting Servlet engine: [Apache Tomcat/9.0.31]
+[32m10:03:20.688 [main] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring embedded WebApplicationContext
+[32m10:03:20.811 [main] INFO  c.a.d.s.b.a.DruidDataSourceAutoConfigure - [dataSource,55][0;39m : Init DruidDataSource
+[32m10:03:20.889 [main] INFO  c.a.d.p.DruidDataSource - [init,990][0;39m : {dataSource-1} inited
+[32m10:03:21.882 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m10:03:21.886 [main] INFO  c.n.c.s.URLConfigurationSource - [<init>,122][0;39m : To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[32m10:03:22.704 [main] INFO  c.s.a.AdminApplication - [logStarted,61][0;39m : Started AdminApplication in 4.011 seconds (JVM running for 5.077)
+[32m10:03:22.886 [RMI TCP Connection(1)-192.168.1.2] INFO  o.a.c.c.C.[.[.[/admin-api] - [log,173][0;39m : Initializing Spring DispatcherServlet 'dispatcherServlet'
+[32m10:03:24.916 [boundedElastic-1] INFO  i.l.c.EpollProvider - [<clinit>,68][0;39m : Starting without optional epoll library
+[32m10:03:24.918 [boundedElastic-1] INFO  i.l.c.KqueueProvider - [<clinit>,70][0;39m : Starting without optional kqueue library
+[32m10:03:40.090 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2043][0;39m : {dataSource-1} closing ...
+[32m10:03:40.092 [SpringContextShutdownHook] INFO  c.a.d.p.DruidDataSource - [close,2116][0;39m : {dataSource-1} closed
