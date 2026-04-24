@@ -1,8 +1,14 @@
-target
+# 不把整个 target 排除，否则 COPY target/*.jar 无法进入构建上下文
+target/classes
+target/generated-sources
+target/maven-status
+target/maven-archiver
+target/surefire-reports
+target/test-classes
+target/*.original
 .idea
 .git
 .gitignore
 logs
 *.log
 *.iml
-
