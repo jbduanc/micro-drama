@@ -162,18 +162,24 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
-          run_install: false
 
       - name: 安装 Node
         if: steps.plan.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
+          # 仅指定版本；不要设置 cache: pnpm（在子目录+pnpm 时 actions/setup-node@v4
+          # 会执行 pnpm store path 等逻辑，常出现 unable to cache）
           node-version: 20
-          # 必须用「相对仓库根目录」的固定路径；${{ env.FRONTEND_DIR }} 在 cache 子步骤里常解析失败 → unable to cache
-          cache: pnpm
-          cache-dependency-path: |
-            frontend/micro-drama-admin/pnpm-lock.yaml
-            frontend/micro-drama-admin/package.json
+
+      - name: 依赖缓存（仅加速，与 setup-node 解耦）
+        if: steps.plan.outputs.frontend == 'true'
+        uses: actions/cache@v4
+        with:
+          # Linux 作业机默认 pnpm 全局 store
+          path: /home/runner/.local/share/pnpm/store
+          key: pnpm-store-${{ hashFiles('frontend/micro-drama-admin/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-
 
       - name: 前端编译
         if: steps.plan.outputs.frontend == 'true'
