@@ -1,0 +1,21 @@
+# IDEA配置
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# 日志
+logs/
+*.log
+
+# Maven打包
+target/
+*.jar
+*.war
+
+# 前端
+node_modules/
+dist/
+
+# 系统文件
+.DS_Store
