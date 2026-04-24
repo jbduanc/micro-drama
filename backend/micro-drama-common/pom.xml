@@ -5,14 +5,14 @@
     <parent>
         <groupId>com.drama</groupId>
         <artifactId>micro-drama-parent</artifactId>
-        <version>1.1</version>
+        <version>1.1-SNAPSHOT</version>
         <relativePath/>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>micro-drama-common</artifactId>
     <description>短剧平台公共模块</description>
-    <version>1.0.1</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <dependencies>
         <dependency>

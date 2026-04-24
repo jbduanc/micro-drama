@@ -7,7 +7,7 @@
     <groupId>com.drama</groupId>
     <artifactId>micro-drama-parent</artifactId>
     <name>micro-drama-parent</name>
-    <version>1.1</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>短剧平台父项目</description>
 
