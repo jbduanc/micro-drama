@@ -1,0 +1,58 @@
+name: 短剧项目 CI/CD (Maven + Nexus + Docker)
+
+# 仅推送main分支触发（最安全）
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 配置 JDK 8 (匹配你的本地环境)
+      - name: Setup JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+
+      # 3. 自动生成Maven配置（完全对齐你本地settings.xml）
+      - name: Generate Maven Settings
+        uses: whelk-io/maven-settings-xml-action@v21
+        with:
+          # 【关键】和你本地settings的server id完全一致
+          servers: |
+            [
+              {"id":"maven-releases","username":"${{ secrets.NEXUS_USERNAME }}","password":"${{ secrets.NEXUS_PASSWORD }}"},
+              {"id":"maven-snapshots","username":"${{ secrets.NEXUS_USERNAME }}","password":"${{ secrets.NEXUS_PASSWORD }}"}
+            ]
+          # 【关键】和你本地settings的mirror id、url完全一致
+          mirrors: |
+            [{"id":"nexus-maven","url":"${{ secrets.NEXUS_URL }}/repository/maven-public/","mirrorOf":"central"}]
+
+      # 4. 构建并上传Jar到Nexus
+      - name: Build & Deploy to Nexus
+        run: |
+          cd backend
+          mvn clean deploy -DskipTests
+
+      # 5. 登录Nexus Docker仓库
+      - name: Login to Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.NEXUS_DOCKER_URL }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      # 6. 构建并推送Docker镜像
+      - name: Build & Push Admin Service
+        run: |
+          cd backend/micro-drama-admin
+          docker build -t ${{ secrets.NEXUS_DOCKER_URL }}/${{ secrets.DOCKER_IMAGE_ADMIN }}:latest .
+          docker push ${{ secrets.NEXUS_DOCKER_URL }}/${{ secrets.DOCKER_IMAGE_ADMIN }}:latest

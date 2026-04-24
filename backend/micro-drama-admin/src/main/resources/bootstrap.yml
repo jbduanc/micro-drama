@@ -1,15 +1,17 @@
 # 启动阶段从 Consul KV 拉取配置，与 application*.yml 合并后 Consul 侧优先级更高。
-# 管理端路径示例：http://149.248.9.215:8500/ui/dc1/kv/config/micro-drama-admin/data/
-# 请在 Consul 中创建键 config/micro-drama-admin/data，值为完整 YAML（与原先 application-local 同级结构即可）。
+# Consul 地址（任选其一，优先级从高到低与 Spring Boot 一致）：
+#   - 启动参数：--spring.cloud.consul.host= --spring.cloud.consul.port=
+#   - 环境变量（推荐线上）：SPRING_CLOUD_CONSUL_HOST、SPRING_CLOUD_CONSUL_PORT
+#   - JVM 系统属性：-DCONSUL_HOST= -DCONSUL_PORT=（对应下方占位符默认值）
+# bootstrap.yml 已排除 Maven 资源过滤，可使用 ${CONSUL_HOST:...} 占位符。
 spring:
   application:
     name: micro-drama-admin
   cloud:
     consul:
-      # 可通过环境变量 SPRING_CLOUD_CONSUL_HOST / SPRING_CLOUD_CONSUL_PORT 覆盖（避免与 Maven 资源过滤冲突不写 ${}）
-      host: 149.248.9.215
-      port: 8500
-      # 若 Consul 开启 ACL，请设置环境变量 SPRING_CLOUD_CONSUL_TOKEN（或 spring.cloud.consul.token）
+      host: ${CONSUL_HOST:127.0.0.1}
+      port: ${CONSUL_PORT:8500}
+      # 若 Consul 开启 ACL，请设置 SPRING_CLOUD_CONSUL_TOKEN（或 spring.cloud.consul.token）
       config:
         enabled: true
         format: YAML
@@ -19,5 +21,8 @@ spring:
           enabled: true
         fail-fast: false
       discovery:
-        enabled: false
-        register: false
+        enabled: true
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s

@@ -33,6 +33,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-consul-config</artifactId>
         </dependency>
+        <!-- Consul 服务注册与发现 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-consul-discovery</artifactId>
+        </dependency>
 
         <!-- Spring Boot OAuth2 客户端（严格对齐 2.2.5.RELEASE 版本） -->
         <dependency>
@@ -147,6 +152,16 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <excludes>
+                    <exclude>bootstrap.yml</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>bootstrap.yml</include>
+                </includes>
             </resource>
         </resources>
         <finalName>${project.artifactId}</finalName>
