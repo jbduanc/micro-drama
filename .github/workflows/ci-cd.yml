@@ -48,8 +48,10 @@ jobs:
       # 🔥【核心修复】允许Docker连接HTTP协议的Nexus（解决connection refused）
       - name: Configure Docker Insecure Registry
         run: |
-          echo "{\"insecure-registries\": [\"${{ secrets.NEXUS_DOCKER_URL }}\"]}" | sudo tee /etc/docker/daemon.json
+          echo "{\"insecure-registries\": [\"149.248.9.215:8082\"]}" | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
+          # 验证配置是否生效
+          cat /etc/docker/daemon.json
 
       # 5. 登录Nexus Docker仓库
       - name: Login to Nexus Docker
