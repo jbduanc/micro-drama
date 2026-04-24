@@ -36,11 +36,14 @@ jobs:
           mirrors: |
             [{"id":"nexus-maven","url":"${{ secrets.NEXUS_URL }}/repository/maven-public/","mirrorOf":"central"}]
 
-      # 4. 构建并上传Jar到Nexus
+      # 4. 构建并上传 Jar 到 Nexus（POM 在子模块中，无 backend/ 根 POM，需先装父 POM 再按依赖顺序 deploy）
       - name: Build & Deploy to Nexus
         run: |
-          cd backend
-          mvn clean deploy -DskipTests
+          set -e
+          mvn -f backend/micro-drama-parent/pom.xml clean install -DskipTests
+          mvn -f backend/micro-drama-common/pom.xml clean deploy -DskipTests
+          mvn -f backend/micro-drama-admin/pom.xml clean deploy -DskipTests
+          mvn -f backend/micro-drama-mini-app/pom.xml clean deploy -DskipTests
 
       # 5. 登录Nexus Docker仓库
       - name: Login to Nexus Docker
