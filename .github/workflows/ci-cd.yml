@@ -201,12 +201,31 @@ jobs:
           sudo systemctl restart docker
           cat /etc/docker/daemon.json
 
+      # docker build -t 与 login 的 registry 必须是 host[:port][/path] 形式，不能含 https://
+      - name: 规范化 Docker 仓库地址
+        id: docker_registry
+        if: |
+          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
+        run: |
+          set -e
+          raw="${{ secrets.NEXUS_DOCKER_URL }}"
+          raw="$(printf '%s' "$raw" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          host="${raw#https://}"
+          host="${host#http://}"
+          host="${host%/}"
+          if [ -z "$host" ]; then
+            echo "::error::Secret NEXUS_DOCKER_URL 为空。请填写 host:port（与 insecure-registries 一致），不要带 https:// 前缀。"
+            exit 1
+          fi
+          echo "host=$host" >> "$GITHUB_OUTPUT"
+          echo "Docker 引用前缀: $host"
+
       - name: 登录 Nexus Docker
         if: |
           (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.NEXUS_DOCKER_URL }}
+          registry: ${{ steps.docker_registry.outputs.host }}
           username: ${{ secrets.NEXUS_USERNAME }}
           password: ${{ secrets.NEXUS_PASSWORD }}
 
@@ -215,7 +234,7 @@ jobs:
         run: |
           set -e
           TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ secrets.NEXUS_DOCKER_URL }}"
+          REG="${{ steps.docker_registry.outputs.host }}"
           IMG="${{ steps.imgnames.outputs.image_admin }}"
           cd backend/micro-drama-admin
           docker build -t "${REG}/${IMG}:${TAG}" .
@@ -226,7 +245,7 @@ jobs:
         run: |
           set -e
           TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ secrets.NEXUS_DOCKER_URL }}"
+          REG="${{ steps.docker_registry.outputs.host }}"
           IMG="${{ steps.imgnames.outputs.image_mini }}"
           cd backend/micro-drama-mini-app
           docker build -t "${REG}/${IMG}:${TAG}" .
@@ -237,7 +256,7 @@ jobs:
         run: |
           set -e
           TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ secrets.NEXUS_DOCKER_URL }}"
+          REG="${{ steps.docker_registry.outputs.host }}"
           IMG="${{ steps.imgnames.outputs.image_frontend }}"
           cd "${{ env.FRONTEND_DIR }}"
           docker build -t "${REG}/${IMG}:${TAG}" .
