@@ -33,13 +33,12 @@ jobs:
       PROJ_ADMIN: micro-drama-admin
       PROJ_MINI: micro-drama-mini-app
     steps:
-      - name: 拉取代码（含子模块，否则前端目录可能为空、pnpm 报无 package.json）
+      - name: 拉取代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: recursive
-          # 子模块指向**私有**别的仓库时，在仓库 Secret 中配置 GH_SUBMODULES_TOKEN（PAT 只读）并打开下行注释
-          # token: ${{ secrets.GH_SUBMODULES_TOKEN }}
+          # 前端在 monorepo 内；若将来使用子模块，改为 recursive 并维护 .gitmodules
+          submodules: false
 
       - name: 解析构建目标（push=按 diff；手动=按勾选）
         id: plan
@@ -190,7 +189,7 @@ jobs:
           HUSKY: "0"
         run: |
           set -e
-          test -f package.json || { echo "::error::$PWD 下无 package.json，请检查子模块是否已拉取或已提交"; ls -la; exit 1; }
+          test -f package.json || { echo "::error::$PWD 下无 package.json，请检查 FRONTEND_DIR 或是否已提交前端目录"; ls -la; exit 1; }
           pnpm install --frozen-lockfile
           pnpm run build
 
