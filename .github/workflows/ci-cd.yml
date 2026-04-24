@@ -104,6 +104,10 @@ jobs:
           if echo "$CHANGED" | grep -qE "^${{ env.FRONTEND_DIR }}/"; then
             F=true
           fi
+          # 仅改 parent/common 等会打出后端镜像但不会命中上面 FRONTEND_DIR，Nexus 会缺 frontend-*；任一角出后端镜像时顺带构建前端
+          if [ "$A" = "true" ] || [ "$M" = "true" ]; then
+            F=true
+          fi
           echo "admin=$A" >> "$GITHUB_OUTPUT"
           echo "mini=$M" >> "$GITHUB_OUTPUT"
           echo "frontend=$F" >> "$GITHUB_OUTPUT"
