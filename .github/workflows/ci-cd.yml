@@ -162,14 +162,18 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+          run_install: false
 
       - name: 安装 Node
         if: steps.plan.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          # 必须用「相对仓库根目录」的固定路径；${{ env.FRONTEND_DIR }} 在 cache 子步骤里常解析失败 → unable to cache
           cache: pnpm
-          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+          cache-dependency-path: |
+            frontend/micro-drama-admin/pnpm-lock.yaml
+            frontend/micro-drama-admin/package.json
 
       - name: 前端编译
         if: steps.plan.outputs.frontend == 'true'
