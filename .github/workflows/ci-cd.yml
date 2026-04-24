@@ -24,7 +24,7 @@ jobs:
 
       # 3. 自动生成Maven配置（完全对齐你本地settings.xml）
       - name: Generate Maven Settings
-        uses: whelk-io/maven-settings-xml-action@v21
+        uses: whelk-io/maven-settings-xml-action@v19
         with:
           # 【关键】和你本地settings的server id完全一致
           servers: |
@@ -44,6 +44,12 @@ jobs:
           mvn -f backend/micro-drama-common/pom.xml clean deploy -DskipTests
           mvn -f backend/micro-drama-admin/pom.xml clean deploy -DskipTests
           mvn -f backend/micro-drama-mini-app/pom.xml clean deploy -DskipTests
+
+      # 🔥【核心修复】允许Docker连接HTTP协议的Nexus（解决connection refused）
+      - name: Configure Docker Insecure Registry
+        run: |
+          echo "{\"insecure-registries\": [\"${{ secrets.NEXUS_DOCKER_URL }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
 
       # 5. 登录Nexus Docker仓库
       - name: Login to Nexus Docker
