@@ -33,10 +33,13 @@ jobs:
       PROJ_ADMIN: micro-drama-admin
       PROJ_MINI: micro-drama-mini-app
     steps:
-      - name: 拉取代码
+      - name: 拉取代码（含子模块，否则前端目录可能为空、pnpm 报无 package.json）
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
+          # 子模块指向**私有**别的仓库时，在仓库 Secret 中配置 GH_SUBMODULES_TOKEN（PAT 只读）并打开下行注释
+          # token: ${{ secrets.GH_SUBMODULES_TOKEN }}
 
       - name: 解析构建目标（push=按 diff；手动=按勾选）
         id: plan
@@ -175,7 +178,6 @@ jobs:
         if: steps.plan.outputs.frontend == 'true'
         uses: actions/cache@v4
         with:
-          # Linux 作业机默认 pnpm 全局 store
           path: /home/runner/.local/share/pnpm/store
           key: pnpm-store-${{ hashFiles('frontend/micro-drama-admin/pnpm-lock.yaml') }}
           restore-keys: |
@@ -183,11 +185,12 @@ jobs:
 
       - name: 前端编译
         if: steps.plan.outputs.frontend == 'true'
+        working-directory: ${{ env.FRONTEND_DIR }}
         env:
           HUSKY: "0"
         run: |
           set -e
-          cd "${{ env.FRONTEND_DIR }}"
+          test -f package.json || { echo "::error::$PWD 下无 package.json，请检查子模块是否已拉取或已提交"; ls -la; exit 1; }
           pnpm install --frozen-lockfile
           pnpm run build
 
