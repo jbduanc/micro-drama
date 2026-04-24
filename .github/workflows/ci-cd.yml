@@ -1,5 +1,5 @@
 # 镜像名：registry/backend-<子目录名>、registry/frontend-<子目录名>（子目录 = 工程文件夹名，如 micro-drama-admin）
-# push：按 git 变更只构建受影响的模块；手动运行：按勾选
+# push：前后端按各自路径 diff 独立决策；手动运行：仅构建勾选项
 name: 短剧项目 CI/CD (Maven + Nexus + Docker)
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
           # 前端在 monorepo 内；若将来使用子模块，改为 recursive 并维护 .gitmodules
           submodules: false
 
-      - name: 解析构建目标（push=按 diff；手动=按勾选）
+      - name: 解析构建目标（push=分路径 diff；手动=仅勾选）
         id: plan
         run: |
           set -e
@@ -59,7 +59,7 @@ jobs:
             fi
             exit 0
           fi
-          # ——— push: 只构建变更涉及的模块 ———
+          # ——— push：仅当对应目录出现在本次 diff 中才构建该角（不互相牵连） ———
           echo "tag=latest" >> "$GITHUB_OUTPUT"
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
@@ -80,13 +80,6 @@ jobs:
             echo "mvn_target=none" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if echo "$CHANGED" | grep -qE '^\.github/'; then
-            echo "admin=true" >> "$GITHUB_OUTPUT"
-            echo "mini=true" >> "$GITHUB_OUTPUT"
-            echo "frontend=true" >> "$GITHUB_OUTPUT"
-            echo "mvn_target=all" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           A=false; M=false; F=false; MVN=none
           if echo "$CHANGED" | grep -qE '^backend/micro-drama-(parent|common)/'; then
             A=true; M=true; MVN=all
@@ -102,10 +95,6 @@ jobs:
             elif [ "$MVN" = "admin" ]; then MVN=all; fi
           fi
           if echo "$CHANGED" | grep -qE "^${{ env.FRONTEND_DIR }}/"; then
-            F=true
-          fi
-          # 仅改 parent/common 等会打出后端镜像但不会命中上面 FRONTEND_DIR，Nexus 会缺 frontend-*；任一角出后端镜像时顺带构建前端
-          if [ "$A" = "true" ] || [ "$M" = "true" ]; then
             F=true
           fi
           echo "admin=$A" >> "$GITHUB_OUTPUT"
