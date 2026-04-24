@@ -8,7 +8,7 @@
         <relativePath/>
     </parent>
 
-    <artifactId>micro-drama-xcx</artifactId>
+    <artifactId>micro-drama-mini-app</artifactId>
     <packaging>jar</packaging>
     <description>短视频平台小程序</description>
 

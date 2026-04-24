@@ -10,10 +10,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 @MapperScan("com.tcm.**.mapper")
-public class RxApplication {
+public class MiniAppApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(RxApplication.class, args);
+        SpringApplication.run(MiniAppApplication.class, args);
     }
 
 }
