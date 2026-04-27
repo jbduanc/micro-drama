@@ -27,7 +27,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      NEXUS_DOCKER_HOST: 149.248.9.215:8083
+      NEXUS_DOCKER_HOST: 66.42.106.178:8083
       FRONTEND_DIR: frontend/micro-drama-admin
       # 与 backend/<目录> 的目录名一致，供 paths 判断
       PROJ_ADMIN: micro-drama-admin
