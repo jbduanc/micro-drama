@@ -1,40 +1,40 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import path from "path"
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      /**
-       * Backend config:
-       *   server.port = 8080
-       *   server.servlet.context-path = /admin-api
-       *
-       * Frontend calls:
-       *   /memberPlans/**
-       *
-       * Proxy to:
-       *   http://localhost:8080/admin-api/memberPlans/**
-       */
-      "/memberPlans": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-        rewrite: (p) => `/admin-api${p}`,
-      },
+export default defineConfig(() => {
+  // Local dev default: backend on host
+  // Docker dev default: proxy to service name on app-network
+  const adminApiTarget =
+    process.env.VITE_ADMIN_API_TARGET ??
+    process.env.ADMIN_API_TARGET ??
+    "http://backend-admin:6001"
 
-      /**
-       * Optional: if frontend later uses /admin-api/** directly.
-       */
-      "/admin-api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
+  return {
+    plugins: [react()],
+    server: {
+      host: true,
+      port: 5173,
+      strictPort: true,
+      proxy: {
+        // Main path used by axios baseURL: "/admin-api"
+        "/admin-api": {
+          target: adminApiTarget,
+          changeOrigin: true,
+        },
+
+        // Backward-compat: old relative calls like "/memberPlans/**"
+        "/memberPlans": {
+          target: adminApiTarget,
+          changeOrigin: true,
+          rewrite: (p) => `/admin-api${p}`,
+        },
       },
     },
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-});
+  }
+})

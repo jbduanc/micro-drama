@@ -6,12 +6,20 @@ export const authService = {
     const res = await http.get<Result<string>>("/oauth2/authorize-url", {
       params: { redirectUri },
     })
-    return res.data.data
+    const url = res.data?.data
+    if (!url) {
+      throw new Error("Empty authorize url")
+    }
+    return url
   },
 
   async loginWithGoogleCode(code: string, redirectUri: string): Promise<string> {
     const res = await http.post<Result<string>>("/oauth2/login/google", { code, redirectUri })
-    return res.data.data
+    const token = res.data?.data
+    if (!token) {
+      throw new Error("Empty token")
+    }
+    return token
   },
 
   async getUserInfo(): Promise<UserInfoDTO> {

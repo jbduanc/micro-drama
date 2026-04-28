@@ -9,6 +9,11 @@ export default function LoginPage() {
     try {
       const redirectUri = new URL("/oauth/callback", window.location.origin).toString()
       const url = await authService.getAuthorizeUrl(redirectUri)
+      if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
+        console.error("Invalid authorize url:", url)
+        toast.error("授权地址不合法，请联系管理员")
+        return
+      }
       window.location.href = url
     } catch (e) {
       console.error(e)
