@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -51,13 +52,17 @@ public class LoginController {
      * 前端调用：获取 Google 授权跳转地址
      */
     @GetMapping("/authorize-url")
-    public Result<String> getGoogleAuthorizeUrl() {
+    public Result<String> getGoogleAuthorizeUrl(
+            @RequestParam(value = "redirectUri", required = false) String redirectUri,
+            HttpServletRequest request
+    ) {
         ClientRegistration googleClient = clientRegistrationRepository.findByRegistrationId("google");
 
+        String resolvedRedirectUri = resolveRedirectUri(request, redirectUri, googleClient.getRedirectUriTemplate());
         String authorizeUrl = UriComponentsBuilder
                 .fromUriString(googleClient.getProviderDetails().getAuthorizationUri())
                 .queryParam("client_id", googleClient.getClientId())
-                .queryParam("redirect_uri", googleClient.getRedirectUriTemplate())
+                .queryParam("redirect_uri", resolvedRedirectUri)
                 .queryParam("response_type", "code")
                 .queryParam("scope", String.join(" ", googleClient.getScopes()))
                 .queryParam("state", "random_state")
@@ -71,14 +76,16 @@ public class LoginController {
      * 修复1：必须用 @GetMapping ！！！Google回调是GET请求
      */
     @PostMapping("/login/google")
-    public Result<String> googleLogin(@RequestBody Map<String, String> payload) {
+    public Result<String> googleLogin(@RequestBody Map<String, String> payload, HttpServletRequest request) {
         String code = payload.get("code");
         if (code == null || code.isEmpty()) {
             return Result.error("授权码不能为空");
         }
+        String redirectUri = payload.get("redirectUri");
 
         // 1. 获取 Google 客户端配置
         ClientRegistration googleClient = clientRegistrationRepository.findByRegistrationId("google");
+        String resolvedRedirectUri = resolveRedirectUri(request, redirectUri, googleClient.getRedirectUriTemplate());
 
         // 2. 用 code 换 access_token
         MultiValueMap<String, String> tokenParams = new LinkedMultiValueMap<>();
@@ -86,7 +93,7 @@ public class LoginController {
         tokenParams.add("client_id", googleClient.getClientId());
         tokenParams.add("client_secret", googleClient.getClientSecret());
         // 必须与授权请求中的 redirect_uri 及 Google 控制台配置完全一致
-        tokenParams.add("redirect_uri", googleClient.getRedirectUriTemplate());
+        tokenParams.add("redirect_uri", resolvedRedirectUri);
         tokenParams.add("grant_type", "authorization_code");
 
         Map<String, Object> tokenResponse = restTemplate.postForObject(
@@ -188,5 +195,34 @@ public class LoginController {
         userInfo.setStatus(sysUser.getStatus());
 
         return Result.ok(userInfo);
+    }
+
+    private String resolveRedirectUri(HttpServletRequest request, String redirectUri, String redirectUriTemplate) {
+        // 1) Prefer explicit redirectUri passed from frontend.
+        if (redirectUri != null && !redirectUri.isBlank() && !redirectUri.endsWith("/undefined")) {
+            return redirectUri;
+        }
+
+        // 2) If redirectUriTemplate is already a concrete URL (no placeholders), use it.
+        if (redirectUriTemplate != null && !redirectUriTemplate.isBlank()
+                && !redirectUriTemplate.contains("{") && !redirectUriTemplate.contains("}")) {
+            return redirectUriTemplate;
+        }
+
+        // 3) Fallback: infer from request host (supports reverse-proxy via X-Forwarded-*).
+        String scheme = request.getHeader("X-Forwarded-Proto");
+        if (scheme == null || scheme.isBlank()) {
+            scheme = request.getScheme();
+        }
+
+        String host = request.getHeader("X-Forwarded-Host");
+        if (host == null || host.isBlank()) {
+            host = request.getHeader("Host");
+        }
+        if (host == null || host.isBlank()) {
+            host = request.getServerName() + (request.getServerPort() > 0 ? ":" + request.getServerPort() : "");
+        }
+
+        return scheme + "://" + host + "/oauth/callback";
     }
 }
