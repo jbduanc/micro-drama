@@ -57,7 +57,7 @@ public class LoginController {
         String authorizeUrl = UriComponentsBuilder
                 .fromUriString(googleClient.getProviderDetails().getAuthorizationUri())
                 .queryParam("client_id", googleClient.getClientId())
-                .queryParam("redirect_uri", "http://localhost:5173/oauth/callback") // 老版本支持
+                .queryParam("redirect_uri", googleClient.getRedirectUriTemplate())
                 .queryParam("response_type", "code")
                 .queryParam("scope", String.join(" ", googleClient.getScopes()))
                 .queryParam("state", "random_state")
@@ -85,8 +85,8 @@ public class LoginController {
         tokenParams.add("code", code);
         tokenParams.add("client_id", googleClient.getClientId());
         tokenParams.add("client_secret", googleClient.getClientSecret());
-        // 🔥 关键：必须与 Google 控制台中配置的重定向 URI 完全一致
-        tokenParams.add("redirect_uri", "http://localhost:5173/oauth/callback");
+        // 必须与授权请求中的 redirect_uri 及 Google 控制台配置完全一致
+        tokenParams.add("redirect_uri", googleClient.getRedirectUriTemplate());
         tokenParams.add("grant_type", "authorization_code");
 
         Map<String, Object> tokenResponse = restTemplate.postForObject(
