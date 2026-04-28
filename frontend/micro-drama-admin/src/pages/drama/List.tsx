@@ -163,8 +163,8 @@ export default function DramaListPage() {
               )}
 
               {!loading &&
-                rows.map((row) => (
-                  <TableRow key={String(row.dramaId ?? row.title ?? Math.random())}>
+                rows.map((row, idx) => (
+                  <TableRow key={String(row.dramaId ?? row.title ?? `row-${idx}`)}>
                     <TableCell>{row.dramaId ?? "-"}</TableCell>
                     <TableCell className="font-medium">{row.title ?? "-"}</TableCell>
                     <TableCell>

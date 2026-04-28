@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function LoginPage() {
   async function handleGoogleLogin() {
     try {
-      const url = await authService.getAuthorizeUrl()
+      const redirectUri = new URL("/oauth/callback", window.location.origin).toString()
+      const url = await authService.getAuthorizeUrl(redirectUri)
       window.location.href = url
     } catch (e) {
       console.error(e)

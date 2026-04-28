@@ -20,7 +20,8 @@ export default function OAuthCallbackPage() {
       }
 
       try {
-        const token = await authService.loginWithGoogleCode(code)
+        const redirectUri = new URL("/oauth/callback", window.location.origin).toString()
+        const token = await authService.loginWithGoogleCode(code, redirectUri)
         // set token early so subsequent calls include Authorization header
         useAuthStore.getState().setToken(token)
         const user = await authService.getUserInfo()
