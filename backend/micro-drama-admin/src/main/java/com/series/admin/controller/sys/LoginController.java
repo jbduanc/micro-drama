@@ -7,6 +7,8 @@ import com.series.admin.service.sys.ISysUserService;
 import com.series.admin.utils.JwtUtil;
 import com.series.admin.utils.SecurityUserUtils;
 import com.series.common.entity.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -33,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 @CrossOrigin(origins = "${cors.allowed-origins}")
 public class LoginController {
 
+    private static final Logger log = LoggerFactory.getLogger(LoginController.class);
+
     @Autowired
     private JwtUtil jwtUtil;
     @Autowired
@@ -48,17 +52,19 @@ public class LoginController {
     @Value("${jwt.access-expire}")
     private Long accessExpire;
 
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String googleRedirectUri;
+
     /**
      * 前端调用：获取 Google 授权跳转地址
      */
     @GetMapping("/authorize-url")
-    public Result<String> getGoogleAuthorizeUrl(
-            @RequestParam(value = "redirectUri", required = false) String redirectUri,
-            HttpServletRequest request
-    ) {
+    public Result<String> getGoogleAuthorizeUrl() {
         ClientRegistration googleClient = clientRegistrationRepository.findByRegistrationId("google");
 
-        String resolvedRedirectUri = resolveRedirectUri(request, redirectUri, googleClient.getRedirectUriTemplate());
+        String resolvedRedirectUri = googleRedirectUri;
+        log.info("Google OAuth2 authorize redirect_uri={}", resolvedRedirectUri);
+
         String authorizeUrl = UriComponentsBuilder
                 .fromUriString(googleClient.getProviderDetails().getAuthorizationUri())
                 .queryParam("client_id", googleClient.getClientId())
@@ -85,7 +91,9 @@ public class LoginController {
 
         // 1. 获取 Google 客户端配置
         ClientRegistration googleClient = clientRegistrationRepository.findByRegistrationId("google");
-        String resolvedRedirectUri = resolveRedirectUri(request, redirectUri, googleClient.getRedirectUriTemplate());
+
+        String resolvedRedirectUri = googleRedirectUri;
+        log.info("Google OAuth2 token redirect_uri={}, payloadRedirectUri={}", resolvedRedirectUri, redirectUri);
 
         // 2. 用 code 换 access_token
         MultiValueMap<String, String> tokenParams = new LinkedMultiValueMap<>();
@@ -195,34 +203,5 @@ public class LoginController {
         userInfo.setStatus(sysUser.getStatus());
 
         return Result.ok(userInfo);
-    }
-
-    private String resolveRedirectUri(HttpServletRequest request, String redirectUri, String redirectUriTemplate) {
-        // 1) Prefer explicit redirectUri passed from frontend.
-        if (redirectUri != null && !redirectUri.isBlank() && !redirectUri.endsWith("/undefined")) {
-            return redirectUri;
-        }
-
-        // 2) If redirectUriTemplate is already a concrete URL (no placeholders), use it.
-        if (redirectUriTemplate != null && !redirectUriTemplate.isBlank()
-                && !redirectUriTemplate.contains("{") && !redirectUriTemplate.contains("}")) {
-            return redirectUriTemplate;
-        }
-
-        // 3) Fallback: infer from request host (supports reverse-proxy via X-Forwarded-*).
-        String scheme = request.getHeader("X-Forwarded-Proto");
-        if (scheme == null || scheme.isBlank()) {
-            scheme = request.getScheme();
-        }
-
-        String host = request.getHeader("X-Forwarded-Host");
-        if (host == null || host.isBlank()) {
-            host = request.getHeader("Host");
-        }
-        if (host == null || host.isBlank()) {
-            host = request.getServerName() + (request.getServerPort() > 0 ? ":" + request.getServerPort() : "");
-        }
-
-        return scheme + "://" + host + "/oauth/callback";
     }
 }
