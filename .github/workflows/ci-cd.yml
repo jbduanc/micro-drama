@@ -1,6 +1,7 @@
 # 镜像名：registry/backend-<子目录名>、registry/frontend-<子目录名>（子目录 = 工程文件夹名，如 micro-drama-admin）
 # push：前后端按各自路径 diff 独立决策；手动运行：仅构建勾选项
 name: 短剧项目 CI/CD (Maven + Nexus + Docker)
+
 on:
   push:
     branches: [ main ]
@@ -37,7 +38,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # 前端在 monorepo 内；若将来使用子模块，改为 recursive 并维护 .gitmodules
           submodules: false
 
       - name: 解析构建目标（push=分路径 diff；手动=仅勾选）
@@ -162,8 +162,6 @@ jobs:
         if: steps.plan.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
-          # 仅指定版本；不要设置 cache: pnpm（在子目录+pnpm 时 actions/setup-node@v4
-          # 会执行 pnpm store path 等逻辑，常出现 unable to cache）
           node-version: 20
 
       - name: 依赖缓存（仅加速，与 setup-node 解耦）
@@ -194,7 +192,6 @@ jobs:
           sudo systemctl restart docker
           cat /etc/docker/daemon.json
 
-      # docker build -t 与 login 的 registry 必须是 host[:port][/path] 形式，不能含 https://
       - name: 规范化 Docker 仓库地址
         id: docker_registry
         if: |
@@ -254,3 +251,44 @@ jobs:
           cd "${{ env.FRONTEND_DIR }}"
           docker build -t "${REG}/${IMG}:${TAG}" .
           docker push "${REG}/${IMG}:${TAG}"
+
+      # ========== 新增自动部署步骤 ==========
+      - name: 自动部署到服务器（仅更新本次构建的服务）
+        if: |
+          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_ADMIN: ${{ steps.plan.outputs.admin }}
+          DEPLOY_MINI: ${{ steps.plan.outputs.mini }}
+          DEPLOY_FRONTEND: ${{ steps.plan.outputs.frontend }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: DEPLOY_ADMIN,DEPLOY_MINI,DEPLOY_FRONTEND
+          script: |
+            set -e
+            cd ~/services  # 你的 docker-compose-services.yml 所在目录
+
+            # 根据本次构建的服务，拼接需要更新的服务列表
+            SERVICES=""
+            if [ "$DEPLOY_ADMIN" = "true" ]; then
+              SERVICES="$SERVICES backend-admin"
+            fi
+            if [ "$DEPLOY_MINI" = "true" ]; then
+              SERVICES="$SERVICES backend-mini"
+            fi
+            if [ "$DEPLOY_FRONTEND" = "true" ]; then
+              SERVICES="$SERVICES frontend-admin"
+            fi
+
+            if [ -z "$SERVICES" ]; then
+              echo "没有需要更新的服务，跳过部署。"
+              exit 0
+            fi
+
+            echo ">> 开始更新服务: $SERVICES"
+            docker compose -f docker-compose-services.yml pull $SERVICES
+            docker compose -f docker-compose-services.yml up -d --force-recreate --remove-orphans $SERVICES
+            echo ">> 部署完成，当前运行容器:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
