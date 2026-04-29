@@ -9,7 +9,7 @@ spring:
     name: micro-drama-admin
   cloud:
     consul:
-      host: ${CONSUL_HOST:127.0.0.1}
+      host: ${CONSUL_HOST:consul}
       port: ${CONSUL_PORT:8500}
       # 若 Consul 开启 ACL，请设置 SPRING_CLOUD_CONSUL_TOKEN（或 spring.cloud.consul.token）
       config:
