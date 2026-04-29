@@ -28,7 +28,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      NEXUS_DOCKER_HOST: 66.42.106.178:8082          # ✅ 改为 8082（Docker Hosted 端口）
+      NEXUS_DOCKER_HOST: 66.42.106.178:8082          # Docker Hosted 端口
       FRONTEND_DIR: frontend/micro-drama-admin
       # 与 backend/<目录> 的目录名一致，供 paths 判断
       PROJ_ADMIN: micro-drama-admin
@@ -118,17 +118,57 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      - name: 生成 Maven 配置
+      - name: 生成 Maven 配置（直连中央仓库 + Nexus 仅用于私有 Snapshots）
         if: steps.plan.outputs.mvn_target != 'none'
-        uses: whelk-io/maven-settings-xml-action@v19
-        with:
-          servers: |
-            [
-              {"id":"maven-releases","username":"${{ secrets.NEXUS_USERNAME }}","password":"${{ secrets.NEXUS_PASSWORD }}"},
-              {"id":"maven-snapshots","username":"${{ secrets.NEXUS_USERNAME }}","password":"${{ secrets.NEXUS_PASSWORD }}"}
-            ]
-          mirrors: |
-            [{"id":"nexus-maven","url":"${{ secrets.NEXUS_URL }}/repository/maven-public/","mirrorOf":"central"}]
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+            <profiles>
+              <profile>
+                <id>fast-build</id>
+                <repositories>
+                  <!-- 公共依赖直连中央仓库，速度最快 -->
+                  <repository>
+                    <id>central</id>
+                    <url>https://repo.maven.apache.org/maven2</url>
+                    <releases>
+                      <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                      <enabled>false</enabled>
+                    </snapshots>
+                  </repository>
+                  <!-- 只在下载自家 SNAPSHOT 时才访问 Nexus，避免代理缓慢 -->
+                  <repository>
+                    <id>nexus-snapshots</id>
+                    <url>${{ secrets.NEXUS_URL }}/repository/maven-snapshots/</url>
+                    <releases>
+                      <enabled>false</enabled>
+                    </releases>
+                    <snapshots>
+                      <enabled>true</enabled>
+                    </snapshots>
+                  </repository>
+                </repositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>fast-build</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
 
       - name: Maven 部署 — parent + common（任一角涉及后端）
         if: |
@@ -252,7 +292,7 @@ jobs:
           docker build -t "${REG}/${IMG}:${TAG}" .
           docker push "${REG}/${IMG}:${TAG}"
 
-      # ========== 新增自动部署步骤 ==========
+      # ========== 自动部署步骤 ==========
       - name: 自动部署到服务器（仅更新本次构建的服务）
         if: |
           (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
