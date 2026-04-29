@@ -28,7 +28,8 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      NEXUS_DOCKER_HOST: 66.42.106.178:8082          # Docker Hosted 端口
+      # ✅ 改为 Nginx 代理域名，走 80 端口，不受防火墙限制
+      NEXUS_DOCKER_HOST: nexus-docker.66.42.106.178.nip.io
       FRONTEND_DIR: frontend/micro-drama-admin
       # 与 backend/<目录> 的目录名一致，供 paths 判断
       PROJ_ADMIN: micro-drama-admin
