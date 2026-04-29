@@ -28,10 +28,8 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      # ✅ 改为 Nginx 代理域名，走 80 端口，不受防火墙限制
-      NEXUS_DOCKER_HOST: nexus-docker.66.42.106.178.nip.io
+      NEXUS_DOCKER_HOST: nexus-docker.66.42.106.178.nip.io          # Docker 走 80 端口反代
       FRONTEND_DIR: frontend/micro-drama-admin
-      # 与 backend/<目录> 的目录名一致，供 paths 判断
       PROJ_ADMIN: micro-drama-admin
       PROJ_MINI: micro-drama-mini-app
     steps:
@@ -60,7 +58,6 @@ jobs:
             fi
             exit 0
           fi
-          # ——— push：仅当对应目录出现在本次 diff 中才构建该角（不互相牵连） ———
           echo "tag=latest" >> "$GITHUB_OUTPUT"
           BEFORE="${{ github.event.before }}"
           AFTER="${{ github.sha }}"
@@ -293,43 +290,28 @@ jobs:
           docker build -t "${REG}/${IMG}:${TAG}" .
           docker push "${REG}/${IMG}:${TAG}"
 
-      # ========== 自动部署步骤 ==========
-      - name: 自动部署到服务器（仅更新本次构建的服务）
+      # ========== Webhook 触发自动部署 ==========
+      - name: 调用 Webhook 触发部署
         if: |
           (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
-        uses: appleboy/ssh-action@v1.2.0
         env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           DEPLOY_ADMIN: ${{ steps.plan.outputs.admin }}
           DEPLOY_MINI: ${{ steps.plan.outputs.mini }}
           DEPLOY_FRONTEND: ${{ steps.plan.outputs.frontend }}
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          envs: DEPLOY_ADMIN,DEPLOY_MINI,DEPLOY_FRONTEND
-          script: |
-            set -e
-            cd ~/services  # 你的 docker-compose-services.yml 所在目录
-
-            # 根据本次构建的服务，拼接需要更新的服务列表
-            SERVICES=""
-            if [ "$DEPLOY_ADMIN" = "true" ]; then
-              SERVICES="$SERVICES backend-admin"
-            fi
-            if [ "$DEPLOY_MINI" = "true" ]; then
-              SERVICES="$SERVICES backend-mini"
-            fi
-            if [ "$DEPLOY_FRONTEND" = "true" ]; then
-              SERVICES="$SERVICES frontend-admin"
-            fi
-
-            if [ -z "$SERVICES" ]; then
-              echo "没有需要更新的服务，跳过部署。"
-              exit 0
-            fi
-
-            echo ">> 开始更新服务: $SERVICES"
-            docker compose -f docker-compose-services.yml pull $SERVICES
-            docker compose -f docker-compose-services.yml up -d --force-recreate --remove-orphans $SERVICES
-            echo ">> 部署完成，当前运行容器:"
-            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        run: |
+          SERVICES=""
+          if [ "$DEPLOY_ADMIN" = "true" ]; then
+            SERVICES="$SERVICES backend-admin"
+          fi
+          if [ "$DEPLOY_MINI" = "true" ]; then
+            SERVICES="$SERVICES backend-mini"
+          fi
+          if [ "$DEPLOY_FRONTEND" = "true" ]; then
+            SERVICES="$SERVICES frontend-admin"
+          fi
+          echo ">> 通知服务器更新服务: $SERVICES"
+          curl -s -X POST "http://deploy.66.42.106.178.nip.io/hooks/deploy" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services": "'"$SERVICES"'"}'
