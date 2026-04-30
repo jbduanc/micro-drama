@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type EpisodeFormState = {
-  episodeNo: string
+  episodeNum: string
   title: string
   durationSeconds: string
   price: string
@@ -70,7 +70,7 @@ export default function DramaEditPage() {
   const [episodeDialogOpen, setEpisodeDialogOpen] = useState(false)
   const [editingEpisodeIndex, setEditingEpisodeIndex] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<EpisodeFormState>({
-    episodeNo: "",
+    episodeNum: "",
     title: "",
     durationSeconds: "",
     price: "",
@@ -95,14 +95,7 @@ export default function DramaEditPage() {
         sort: data.sort == null ? "" : String(data.sort),
       })
       const rawEpisodes = Array.isArray(data.episodes) ? data.episodes : []
-      // 兼容后端可能返回 episodeNum（而不是 episodeNo）
-      setEpisodes(
-        rawEpisodes.map((ep) => {
-          const anyEp = ep as unknown as { episodeNo?: number; episodeNum?: number }
-          const normalizedNo = anyEp.episodeNo ?? anyEp.episodeNum
-          return normalizedNo == null ? ep : { ...ep, episodeNo: normalizedNo }
-        }),
-      )
+      setEpisodes(rawEpisodes as DramaEpisode[])
     } catch (e) {
       console.error(e)
       toast.error("加载短剧详情失败")
@@ -132,7 +125,7 @@ export default function DramaEditPage() {
   function openCreateEpisode() {
     setEditingEpisodeIndex(null)
     setEpisodeForm({
-      episodeNo: String(episodes.length + 1),
+      episodeNum: String(episodes.length + 1),
       title: "",
       durationSeconds: "",
       price: "",
@@ -146,7 +139,7 @@ export default function DramaEditPage() {
     if (!ep) return
     setEditingEpisodeIndex(indexInAll)
     setEpisodeForm({
-      episodeNo: String(ep.episodeNo ?? ""),
+      episodeNum: String(ep.episodeNum ?? ""),
       title: ep.title ?? "",
       durationSeconds: ep.durationSeconds == null ? "" : String(ep.durationSeconds),
       price: ep.price == null ? "" : String(ep.price),
@@ -156,8 +149,8 @@ export default function DramaEditPage() {
   }
 
   function saveEpisodeFromDialog() {
-    const episodeNo = Number(episodeForm.episodeNo)
-    if (!Number.isInteger(episodeNo) || episodeNo <= 0) {
+    const episodeNum = Number(episodeForm.episodeNum)
+    if (!Number.isInteger(episodeNum) || episodeNum <= 0) {
       toast.error("请输入正确的集数（正整数）")
       return
     }
@@ -168,7 +161,7 @@ export default function DramaEditPage() {
     }
 
     const next: DramaEpisode = {
-      episodeNo,
+      episodeNum,
       title,
       durationSeconds: toNumberOrUndefined(episodeForm.durationSeconds),
       price: toNumberOrUndefined(episodeForm.price),
@@ -182,8 +175,8 @@ export default function DramaEditPage() {
       } else {
         cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
       }
-      // keep stable order by episodeNo then sort
-      cloned.sort((a, b) => (a.episodeNo ?? 0) - (b.episodeNo ?? 0))
+      // keep stable order by episodeNum then sort
+      cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
       return cloned
     })
 
@@ -194,9 +187,7 @@ export default function DramaEditPage() {
   function deleteEpisode(indexInAll: number) {
     const ep = episodes[indexInAll]
     if (!ep) return
-    const anyEp = ep as unknown as { episodeNo?: number; episodeNum?: number }
-    const no = anyEp.episodeNo ?? anyEp.episodeNum
-    const confirmed = window.confirm(`确定删除第${no ?? "-"}集吗？`)
+    const confirmed = window.confirm(`确定删除第${ep.episodeNum ?? "-"}集吗？`)
     if (!confirmed) return
     setEpisodes((prev) => prev.filter((_, idx) => idx !== indexInAll))
     toast.success("已删除剧集（未提交）")
@@ -399,16 +390,14 @@ export default function DramaEditPage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {pageEpisodes.map((ep, idx) => {
                   const globalIndex = (epPage - 1) * epSize + idx
-                  const anyEp = ep as unknown as { episodeNo?: number; episodeNum?: number }
-                  const no = anyEp.episodeNo ?? anyEp.episodeNum
                   return (
                     <div
-                      key={`${ep.episodeId ?? "new"}-${ep.episodeNo}-${ep.title}`}
+                      key={`${ep.episodeId ?? "new"}-${ep.episodeNum}-${ep.title}`}
                       className="relative overflow-hidden rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="text-xs font-medium text-muted-foreground">
-                          第{no ?? "-"}集
+                          第{ep.episodeNum ?? "-"}集
                         </div>
                         <div className="flex items-center gap-1">
                           <Button
@@ -514,13 +503,13 @@ export default function DramaEditPage() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="episodeNo">集数</Label>
+                <Label htmlFor="episodeNum">集数</Label>
                 <Input
-                  id="episodeNo"
+                  id="episodeNum"
                   type="number"
                   min={1}
-                  value={episodeForm.episodeNo}
-                  onChange={(e) => setEpisodeForm((f) => ({ ...f, episodeNo: e.target.value }))}
+                  value={episodeForm.episodeNum}
+                  onChange={(e) => setEpisodeForm((f) => ({ ...f, episodeNum: e.target.value }))}
                 />
               </div>
               <div className="grid gap-2">

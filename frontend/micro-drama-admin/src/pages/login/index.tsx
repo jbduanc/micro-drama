@@ -1,23 +1,23 @@
-import { toast } from "sonner"
+import { toast } from 'sonner'
 
-import { authService } from "@/api/auth/service"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { authService } from '@/api/auth/service'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function LoginPage() {
   async function handleGoogleLogin() {
     try {
-      const redirectUri = new URL("/oauth/callback", window.location.origin).toString()
+      const redirectUri = new URL('/oauth/callback', window.location.origin).toString()
       const url = await authService.getAuthorizeUrl(redirectUri)
-      if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
-        console.error("Invalid authorize url:", url)
-        toast.error("授权地址不合法，请联系管理员")
+      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+        console.error('Invalid authorize url:', url)
+        toast.error('授权地址不合法，请联系管理员')
         return
       }
       window.location.href = url
     } catch (e) {
       console.error(e)
-      toast.error("获取 Google 授权地址失败")
+      toast.error('获取 Google 授权地址失败')
     }
   }
 
@@ -40,4 +40,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

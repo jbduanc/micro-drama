@@ -3,7 +3,7 @@ export type MicroDramaStatus = 0 | 1
 export type DramaEpisode = {
   episodeId?: number | string
   dramaId?: number | string
-  episodeNo: number
+  episodeNum: number
   title: string
   videoUrl?: string
   durationSeconds?: number
