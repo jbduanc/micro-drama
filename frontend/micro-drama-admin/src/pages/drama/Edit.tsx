@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 type EpisodeFormState = {
   episodeNum: string
   episodeTitle: string
-  durationSeconds: string
+  duration: string
   singleEpisodePrice: string
   videoUrl: string
 }
@@ -72,7 +72,7 @@ export default function DramaEditPage() {
   const [episodeForm, setEpisodeForm] = useState<EpisodeFormState>({
     episodeNum: "",
     episodeTitle: "",
-    durationSeconds: "",
+    duration: "",
     singleEpisodePrice: "",
     videoUrl: "",
   })
@@ -127,7 +127,7 @@ export default function DramaEditPage() {
     setEpisodeForm({
       episodeNum: String(episodes.length + 1),
       episodeTitle: "",
-      durationSeconds: "",
+      duration: "",
       singleEpisodePrice: "",
       videoUrl: "",
     })
@@ -141,7 +141,7 @@ export default function DramaEditPage() {
     setEpisodeForm({
       episodeNum: String(ep.episodeNum ?? ""),
       episodeTitle: ep.episodeTitle ?? "",
-      durationSeconds: ep.durationSeconds == null ? "" : String(ep.durationSeconds),
+      duration: ep.duration == null ? "" : String(ep.duration),
       singleEpisodePrice: ep.singleEpisodePrice == null ? "" : String(ep.singleEpisodePrice),
       videoUrl: ep.videoUrl ?? "",
     })
@@ -163,7 +163,7 @@ export default function DramaEditPage() {
     const next: DramaEpisode = {
       episodeNum,
       episodeTitle,
-      durationSeconds: toNumberOrUndefined(episodeForm.durationSeconds),
+      duration: toNumberOrUndefined(episodeForm.duration),
       singleEpisodePrice: toNumberOrUndefined(episodeForm.singleEpisodePrice),
       videoUrl: episodeForm.videoUrl.trim() ? episodeForm.videoUrl.trim() : undefined,
     }
@@ -435,7 +435,7 @@ export default function DramaEditPage() {
                           {ep.episodeTitle}
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          <div>时长：{ep.durationSeconds ?? "-"}s</div>
+                          <div>时长：{ep.duration ?? "-"}s</div>
                           <div>价格：{ep.singleEpisodePrice ?? "-"} TON</div>
                         </div>
                       </div>
@@ -513,14 +513,14 @@ export default function DramaEditPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="durationSeconds">播放时长（秒）</Label>
+                <Label htmlFor="duration">播放时长（秒）</Label>
                 <Input
-                  id="durationSeconds"
+                  id="duration"
                   type="number"
                   min={0}
-                  value={episodeForm.durationSeconds}
+                  value={episodeForm.duration}
                   onChange={(e) =>
-                    setEpisodeForm((f) => ({ ...f, durationSeconds: e.target.value }))
+                    setEpisodeForm((f) => ({ ...f, duration: e.target.value }))
                   }
                 />
               </div>
