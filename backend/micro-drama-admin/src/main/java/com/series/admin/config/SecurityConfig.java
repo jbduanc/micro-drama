@@ -28,8 +28,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 // 权限配置
                 .authorizeRequests()
-                // 登录接口放行
-                .antMatchers("/oauth2/login/google", "/oauth2/authorize-url").permitAll()
+                // 登录接口放行（兼容网关 URL 带 /admin-api 前缀而应用未设 context-path）
+                .antMatchers(
+                        "/oauth2/login/google",
+                        "/oauth2/authorize-url",
+                        "/admin-api/oauth2/login/google",
+                        "/admin-api/oauth2/authorize-url"
+                ).permitAll()
                 // 其他所有接口 → 必须登录
                 .anyRequest().authenticated();
 

@@ -25,9 +25,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        // 1. 定义公开接口路径前缀（与 SecurityConfig 中保持一致）
-        String path = request.getRequestURI();
-        if (path.startsWith("/admin-api/oauth2/authorize-url") || path.startsWith("/admin-api/oauth2/login/google")) {
+        // 1. 公开 OAuth 接口：与 SecurityConfig.permitAll 一致（servletPath 与 Spring Security 匹配口径一致）
+        String servletPath = request.getServletPath() != null ? request.getServletPath() : "";
+        String pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
+        String path = servletPath + pathInfo;
+        if (path.startsWith("/admin-api/")) {
+            path = path.substring("/admin-api".length());
+            if (!path.startsWith("/")) {
+                path = "/" + path;
+            }
+        }
+        if (path.startsWith("/oauth2/authorize-url") || path.startsWith("/oauth2/login/google")) {
             // 对于公开接口，直接放行，不校验 token
             filterChain.doFilter(request, response);
             return;
