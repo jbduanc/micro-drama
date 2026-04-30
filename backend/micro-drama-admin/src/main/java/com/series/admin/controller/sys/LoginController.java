@@ -31,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/oauth2")
-// 临时跨域（生产可配置全局跨域）
-@CrossOrigin(origins = "${cors.allowed-origins}")
 public class LoginController {
 
     private static final Logger log = LoggerFactory.getLogger(LoginController.class);
