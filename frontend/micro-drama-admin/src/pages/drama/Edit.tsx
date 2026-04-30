@@ -14,9 +14,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type EpisodeFormState = {
   episodeNum: string
-  title: string
+  episodeTitle: string
   durationSeconds: string
-  price: string
+  singleEpisodePrice: string
   videoUrl: string
 }
 
@@ -71,9 +71,9 @@ export default function DramaEditPage() {
   const [editingEpisodeIndex, setEditingEpisodeIndex] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<EpisodeFormState>({
     episodeNum: "",
-    title: "",
+    episodeTitle: "",
     durationSeconds: "",
-    price: "",
+    singleEpisodePrice: "",
     videoUrl: "",
   })
 
@@ -126,9 +126,9 @@ export default function DramaEditPage() {
     setEditingEpisodeIndex(null)
     setEpisodeForm({
       episodeNum: String(episodes.length + 1),
-      title: "",
+      episodeTitle: "",
       durationSeconds: "",
-      price: "",
+      singleEpisodePrice: "",
       videoUrl: "",
     })
     setEpisodeDialogOpen(true)
@@ -140,9 +140,9 @@ export default function DramaEditPage() {
     setEditingEpisodeIndex(indexInAll)
     setEpisodeForm({
       episodeNum: String(ep.episodeNum ?? ""),
-      title: ep.title ?? "",
+      episodeTitle: ep.episodeTitle ?? "",
       durationSeconds: ep.durationSeconds == null ? "" : String(ep.durationSeconds),
-      price: ep.price == null ? "" : String(ep.price),
+      singleEpisodePrice: ep.singleEpisodePrice == null ? "" : String(ep.singleEpisodePrice),
       videoUrl: ep.videoUrl ?? "",
     })
     setEpisodeDialogOpen(true)
@@ -154,17 +154,17 @@ export default function DramaEditPage() {
       toast.error("请输入正确的集数（正整数）")
       return
     }
-    const title = episodeForm.title.trim()
-    if (!title) {
+    const episodeTitle = episodeForm.episodeTitle.trim()
+    if (!episodeTitle) {
       toast.error("请输入剧集标题")
       return
     }
 
     const next: DramaEpisode = {
       episodeNum,
-      title,
+      episodeTitle,
       durationSeconds: toNumberOrUndefined(episodeForm.durationSeconds),
-      price: toNumberOrUndefined(episodeForm.price),
+      singleEpisodePrice: toNumberOrUndefined(episodeForm.singleEpisodePrice),
       videoUrl: episodeForm.videoUrl.trim() ? episodeForm.videoUrl.trim() : undefined,
     }
 
@@ -392,7 +392,7 @@ export default function DramaEditPage() {
                   const globalIndex = (epPage - 1) * epSize + idx
                   return (
                     <div
-                      key={`${ep.episodeId ?? "new"}-${ep.episodeNum}-${ep.title}`}
+                      key={`${ep.episodeId ?? "new"}-${ep.episodeNum}-${ep.episodeTitle}`}
                       className="relative overflow-hidden rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -431,12 +431,12 @@ export default function DramaEditPage() {
                       </div>
 
                       <div className="mt-6 space-y-1">
-                        <div className="truncate text-sm font-medium" title={ep.title}>
-                          {ep.title}
+                        <div className="truncate text-sm font-medium" title={ep.episodeTitle}>
+                          {ep.episodeTitle}
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <div>时长：{ep.durationSeconds ?? "-"}s</div>
-                          <div>价格：{ep.price ?? "-"} TON</div>
+                          <div>价格：{ep.singleEpisodePrice ?? "-"} TON</div>
                         </div>
                       </div>
                     </div>
@@ -527,25 +527,27 @@ export default function DramaEditPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="epTitle">剧集标题</Label>
+              <Label htmlFor="episodeTitle">剧集标题</Label>
               <Input
-                id="epTitle"
+                id="episodeTitle"
                 placeholder="例如：第一集"
-                value={episodeForm.title}
-                onChange={(e) => setEpisodeForm((f) => ({ ...f, title: e.target.value }))}
+                value={episodeForm.episodeTitle}
+                onChange={(e) => setEpisodeForm((f) => ({ ...f, episodeTitle: e.target.value }))}
               />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="price">价格（TON）</Label>
+                <Label htmlFor="singleEpisodePrice">价格（TON）</Label>
                 <Input
-                  id="price"
+                  id="singleEpisodePrice"
                   type="number"
                   min={0}
                   step="0.01"
-                  value={episodeForm.price}
-                  onChange={(e) => setEpisodeForm((f) => ({ ...f, price: e.target.value }))}
+                  value={episodeForm.singleEpisodePrice}
+                  onChange={(e) =>
+                    setEpisodeForm((f) => ({ ...f, singleEpisodePrice: e.target.value }))
+                  }
                 />
               </div>
               <div className="grid gap-2">

@@ -4,10 +4,10 @@ export type DramaEpisode = {
   episodeId?: number | string
   dramaId?: number | string
   episodeNum: number
-  title: string
+  episodeTitle: string
   videoUrl?: string
   durationSeconds?: number
-  price?: number
+  singleEpisodePrice?: number
   status?: MicroDramaStatus
   sort?: number
 }
