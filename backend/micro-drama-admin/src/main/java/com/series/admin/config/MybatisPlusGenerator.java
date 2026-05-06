@@ -75,7 +75,7 @@ public class MybatisPlusGenerator {
             setDriverName("org.postgresql.Driver");
             setUsername("postgres");
             setPassword("djbo1616");
-            setUrl("jdbc:postgresql://149.28.92.224:5432/postgres?ssl=false&TimeZone=Asia/Shanghai&stringtype=unspecified&reWriteBatchedInserts=true&prepareThreshold=0&loginTimeout=10&socketTimeout=30");
+            setUrl("jdbc:postgresql://144.202.122.212:5432/postgres?ssl=false&TimeZone=Asia/Shanghai&stringtype=unspecified&reWriteBatchedInserts=true&prepareThreshold=0&loginTimeout=10&socketTimeout=30");
         }};
     }
 

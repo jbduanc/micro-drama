@@ -28,7 +28,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     env:
-      NEXUS_DOCKER_HOST: nexus-docker.66.42.106.178.nip.io          # Docker 走 80 端口反代
+      NEXUS_DOCKER_HOST: nexus-docker.144.202.122.212.nip.io          # Docker 走 80 端口反代
       FRONTEND_DIR: frontend/micro-drama-admin
       PROJ_ADMIN: micro-drama-admin
       PROJ_MINI: micro-drama-mini-app
@@ -311,7 +311,7 @@ jobs:
             SERVICES="$SERVICES frontend-admin"
           fi
           echo ">> 通知服务器更新服务: $SERVICES"
-          curl -s -X POST "http://deploy.66.42.106.178.nip.io/hooks/deploy" \
+          curl -s -X POST "http://deploy.144.202.122.212.nip.io/hooks/deploy" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services": "'"$SERVICES"'"}'

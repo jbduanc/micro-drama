@@ -135,11 +135,11 @@
     <distributionManagement>
         <repository>
             <id>maven-releases</id>
-            <url>http://nexus.66.42.106.178.nip.io/repository/maven-releases/</url>
+            <url>http://nexus.144.202.122.212.nip.io/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>maven-snapshots</id>
-            <url>http://nexus.66.42.106.178.nip.io/repository/maven-snapshots/</url>
+            <url>http://nexus.144.202.122.212.nip.io/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
