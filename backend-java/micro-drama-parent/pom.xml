@@ -20,6 +20,8 @@
         <spring-cloud-alibaba.version>2.2.0.RELEASE</spring-cloud-alibaba.version>
         <spring-cloud.version>Hoxton.RELEASE</spring-cloud.version>
         <spring-boot.version>2.2.5.RELEASE</spring-boot.version>
+        <!-- gRPC -->
+        <grpc.version>1.65.1</grpc.version>
 
         <!-- 数据库相关 -->
         <mysql-druid-version>1.2.6</mysql-druid-version>
@@ -47,6 +49,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- gRPC（统一版本管理，避免各子模块缺 version 导致 CI 失败） -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-inprocess</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+
             <!-- 数据库相关 -->
             <!--<dependency>
                 <groupId>jakarta.validation</groupId>
