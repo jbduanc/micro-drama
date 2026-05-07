@@ -4,9 +4,9 @@ import com.series.admin.grpc.ContentMicroDramasGrpcClient;
 import com.series.common.entity.Result;
 import com.series.common.entity.TablePageInfo;
 import lombok.var;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import com.series.admin.dto.business.MicroDramaDTO;
 import com.series.admin.entity.business.MicroDramas;
 
@@ -28,8 +28,19 @@ import java.util.stream.Collectors;
 @RequestMapping("/microDramas")
 public class MicroDramasController {
 
-    @Resource
-    private ContentMicroDramasGrpcClient contentGrpc;
+    private final ObjectProvider<ContentMicroDramasGrpcClient> contentGrpcProvider;
+
+    public MicroDramasController(ObjectProvider<ContentMicroDramasGrpcClient> contentGrpcProvider) {
+        this.contentGrpcProvider = contentGrpcProvider;
+    }
+
+    private ContentMicroDramasGrpcClient contentGrpc() {
+        ContentMicroDramasGrpcClient client = contentGrpcProvider.getIfAvailable();
+        if (client == null) {
+            throw new IllegalStateException("content gRPC client 未启用：请配置 grpc.client.content.enabled=true");
+        }
+        return client;
+    }
 
     /**
      * 分页查询短剧列表
@@ -40,7 +51,7 @@ public class MicroDramasController {
                 .setPage(queryVO.getPage() == null ? 1 : queryVO.getPage())
                 .setSize(queryVO.getSize() == null ? 10 : queryVO.getSize())
                 .build();
-        var resp = contentGrpc.stub().pageList(req);
+        var resp = contentGrpc().stub().pageList(req);
 
         // 兼容旧返回结构：TablePageInfo<MicroDramas>
         TablePageInfo<MicroDramas> out = new TablePageInfo<>();
@@ -78,7 +89,7 @@ public class MicroDramasController {
                 .setBase(base)
                 .build();
         MicroDramaSaveOrUpdateRequest req = MicroDramaSaveOrUpdateRequest.newBuilder().setDrama(detail).build();
-        var resp = contentGrpc.stub().saveOrUpdate(req);
+        var resp = contentGrpc().stub().saveOrUpdate(req);
         return Result.ok(resp.getOk());
     }
 
@@ -87,7 +98,7 @@ public class MicroDramasController {
      */
     @GetMapping("/detail/{dramaId}")
     public Result<MicroDramaDTO> getDetail(@PathVariable Integer dramaId) {
-        var resp = contentGrpc.stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
+        var resp = contentGrpc().stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
         if (!resp.hasDrama() || !resp.getDrama().hasBase()) {
             return Result.error("短剧不存在");
         }
@@ -109,7 +120,7 @@ public class MicroDramasController {
      */
     @PostMapping("/delete/{dramaId}")
     public Result<Boolean> delete(@PathVariable Integer dramaId) {
-        var resp = contentGrpc.stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
+        var resp = contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
         return Result.ok(resp.getOk());
     }
 }
