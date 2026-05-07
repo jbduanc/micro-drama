@@ -60,7 +60,6 @@ jobs:
       video: ${{ steps.filter.outputs.video }}
       payment: ${{ steps.filter.outputs.payment }}
       frontend_admin: ${{ steps.filter.outputs.frontend_admin }}
-      frontend_mini: ${{ steps.filter.outputs.frontend_mini }}
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -92,8 +91,6 @@ jobs:
               - 'backend-go/micro-drama-payment/**'
             frontend_admin:
               - 'frontend/micro-drama-admin/**'
-            frontend_mini:
-              - 'frontend/micro-drama-mini-app/**'
 
   backend-common:
     runs-on: ubuntu-latest
@@ -576,7 +573,7 @@ jobs:
     needs: [changes]
     if: |
       (github.event_name == 'workflow_dispatch' && inputs.build_frontend == true) ||
-      (github.event_name == 'push' && (needs.changes.outputs.frontend_admin == 'true' || needs.changes.outputs.frontend_mini == 'true'))
+      (github.event_name == 'push' && (needs.changes.outputs.frontend_admin == 'true'))
     strategy:
       fail-fast: false
       matrix:
@@ -585,10 +582,6 @@ jobs:
             dir: frontend/micro-drama-admin
             deploy_service: frontend-admin
             changed_output: frontend_admin
-          - name: frontend-mini
-            dir: frontend/micro-drama-mini-app
-            deploy_service: frontend-mini
-            changed_output: frontend_mini
     env:
       HUSKY: "0"
     steps:
@@ -599,7 +592,7 @@ jobs:
         if: |
           github.event_name == 'push' &&
           (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin != 'true' ||
-           matrix.changed_output == 'frontend_mini' && needs.changes.outputs.frontend_mini != 'true')
+           false)
         run: |
           echo "No changes for ${{ matrix.name }}; skipping."
           exit 0
