@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package microdrama.content.v1;
+
+option java_package = "com.series.common.grpc.content.v1";
+option java_multiple_files = true;
+option java_outer_classname = "ContentMicroDramasProto";
+
+import "google/protobuf/empty.proto";
+
+service ContentMicroDramasService {
+  rpc PageList (MicroDramaPageListRequest) returns (MicroDramaPageListResponse);
+  rpc SaveOrUpdate (MicroDramaSaveOrUpdateRequest) returns (BoolResult);
+  rpc Detail (MicroDramaIdRequest) returns (MicroDramaDetailResponse);
+  rpc Delete (MicroDramaIdRequest) returns (BoolResult);
+}
+
+message MicroDramaPageListRequest {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message MicroDramaPageListResponse {
+  int32 total = 1;
+  repeated MicroDramaItem data = 2;
+}
+
+message MicroDramaItem {
+  int64 drama_id = 1;
+  string title = 2;
+  string cover_url = 3;
+  string description = 4;
+  int32 total_episodes = 5;
+  string single_drama_price = 6; // decimal-as-string
+  int32 status = 7;
+  int32 sort = 8;
+  string create_time = 9; // yyyy-MM-dd HH:mm:ss (keep compatible with existing JSON)
+  string update_time = 10;
+}
+
+message MicroDramaSaveOrUpdateRequest {
+  MicroDramaDetail drama = 1;
+}
+
+message MicroDramaIdRequest {
+  int64 drama_id = 1;
+}
+
+message MicroDramaDetailResponse {
+  MicroDramaDetail drama = 1;
+}
+
+message MicroDramaDetail {
+  MicroDramaItem base = 1;
+  repeated Episode episodes = 2;
+}
+
+message Episode {
+  int32 episode_id = 1;
+  int32 episode_num = 2;
+  string episode_title = 3;
+  string video_url = 4;
+  string single_episode_price = 5; // decimal-as-string
+  int32 duration = 6;
+}
+
+message BoolResult {
+  bool ok = 1;
+  string msg = 2;
+}
+

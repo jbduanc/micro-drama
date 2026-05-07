@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: micro-drama-content
+  profiles:
+    active: local
+
+server:
+  port: 0
+
+grpc:
+  server:
+    port: 9091
+

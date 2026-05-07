@@ -1,6 +1,6 @@
 # 镜像名：registry/backend-<子目录名>、registry/frontend-<子目录名>（子目录 = 工程文件夹名，如 micro-drama-admin）
-# push：前后端按各自路径 diff 独立决策；手动运行：仅构建勾选项
-name: 短剧项目 CI/CD (Maven + Nexus + Docker)
+# Monorepo：按服务拆 job；push 走 paths-filter；手动运行按勾选项
+name: 短剧项目 CI/CD (Monorepo Multi-Service)
 
 on:
   push:
@@ -11,12 +11,28 @@ on:
         description: 构建 backend/micro-drama-admin（镜像 backend-micro-drama-admin）
         type: boolean
         default: true
-      build_mini:
-        description: 构建 backend/micro-drama-mini-app（镜像 backend-micro-drama-mini-app）
+      build_user:
+        description: 构建 backend/micro-drama-user（镜像 backend-micro-drama-user）
+        type: boolean
+        default: true
+      build_content:
+        description: 构建 backend/micro-drama-content（镜像 backend-micro-drama-content）
+        type: boolean
+        default: true
+      build_playback:
+        description: 构建 backend/micro-drama-playback（镜像 backend-micro-drama-playback）
+        type: boolean
+        default: true
+      build_video:
+        description: 构建 backend-go/micro-drama-video（镜像 backend-micro-drama-video）
+        type: boolean
+        default: true
+      build_payment:
+        description: 构建 backend-go/micro-drama-payment（镜像 backend-micro-drama-payment）
         type: boolean
         default: true
       build_frontend:
-        description: 构建 frontend 目录工程（镜像 frontend-<项目目录名>）
+        description: 构建 frontend 下工程（镜像 frontend-<项目目录名>）
         type: boolean
         default: true
       image_tag:
@@ -24,92 +40,78 @@ on:
         type: string
         default: "latest"
 
+env:
+  # 这些请配置在 GitHub Repository Variables（Settings → Secrets and variables → Actions → Variables）
+  # - NEXUS_DOCKER_HOST: 例如 nexus-docker.144.202.122.212.nip.io
+  # - NEXUS_URL: 例如 http://nexus.144.202.122.212.nip.io
+  # - DEPLOY_WEBHOOK_URL: 例如 http://deploy.144.202.122.212.nip.io/hooks/deploy
+  NEXUS_DOCKER_HOST: ${{ vars.NEXUS_DOCKER_HOST }}
+  NEXUS_URL: ${{ vars.NEXUS_URL }}
+  DEPLOY_WEBHOOK_URL: ${{ vars.DEPLOY_WEBHOOK_URL }}
+
 jobs:
-  build-deploy:
+  changes:
     runs-on: ubuntu-latest
-    env:
-      NEXUS_DOCKER_HOST: nexus-docker.144.202.122.212.nip.io          # Docker 走 80 端口反代
-      FRONTEND_DIR: frontend/micro-drama-admin
-      PROJ_ADMIN: micro-drama-admin
-      PROJ_MINI: micro-drama-mini-app
+    outputs:
+      admin: ${{ steps.filter.outputs.admin }}
+      user: ${{ steps.filter.outputs.user }}
+      content: ${{ steps.filter.outputs.content }}
+      playback: ${{ steps.filter.outputs.playback }}
+      video: ${{ steps.filter.outputs.video }}
+      payment: ${{ steps.filter.outputs.payment }}
+      frontend_admin: ${{ steps.filter.outputs.frontend_admin }}
+      frontend_mini: ${{ steps.filter.outputs.frontend_mini }}
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: false
 
-      - name: 解析构建目标（push=分路径 diff；手动=仅勾选）
-        id: plan
-        run: |
-          set -e
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
-            A="${{ inputs.build_admin }}"
-            M="${{ inputs.build_mini }}"
-            F="${{ inputs.build_frontend }}"
-            echo "admin=$A" >> "$GITHUB_OUTPUT"
-            echo "mini=$M" >> "$GITHUB_OUTPUT"
-            echo "frontend=$F" >> "$GITHUB_OUTPUT"
-            if [ "$A" = "true" ] && [ "$M" = "true" ]; then echo "mvn_target=all" >> "$GITHUB_OUTPUT"
-            elif [ "$A" = "true" ]; then echo "mvn_target=admin" >> "$GITHUB_OUTPUT"
-            elif [ "$M" = "true" ]; then echo "mvn_target=mini" >> "$GITHUB_OUTPUT"
-            else echo "mvn_target=none" >> "$GITHUB_OUTPUT"
-            fi
-            exit 0
-          fi
-          echo "tag=latest" >> "$GITHUB_OUTPUT"
-          BEFORE="${{ github.event.before }}"
-          AFTER="${{ github.sha }}"
-          A=false; M=false; F=false; MVN=none
-          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            A=true; M=true; F=true; MVN=all
-            echo "admin=$A" >> "$GITHUB_OUTPUT"
-            echo "mini=$M" >> "$GITHUB_OUTPUT"
-            echo "frontend=$F" >> "$GITHUB_OUTPUT"
-            echo "mvn_target=$MVN" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" || true)
-          if [ -z "$CHANGED" ]; then
-            echo "admin=false" >> "$GITHUB_OUTPUT"
-            echo "mini=false" >> "$GITHUB_OUTPUT"
-            echo "frontend=false" >> "$GITHUB_OUTPUT"
-            echo "mvn_target=none" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          A=false; M=false; F=false; MVN=none
-          if echo "$CHANGED" | grep -qE '^backend/micro-drama-(parent|common)/'; then
-            A=true; M=true; MVN=all
-          fi
-          if echo "$CHANGED" | grep -qE "^backend/${{ env.PROJ_ADMIN }}/"; then
-            A=true
-            if [ "$MVN" = "none" ]; then MVN=admin
-            elif [ "$MVN" = "mini" ]; then MVN=all; fi
-          fi
-          if echo "$CHANGED" | grep -qE "^backend/${{ env.PROJ_MINI }}/"; then
-            M=true
-            if [ "$MVN" = "none" ]; then MVN=mini
-            elif [ "$MVN" = "admin" ]; then MVN=all; fi
-          fi
-          if echo "$CHANGED" | grep -qE "^${{ env.FRONTEND_DIR }}/"; then
-            F=true
-          fi
-          echo "admin=$A" >> "$GITHUB_OUTPUT"
-          echo "mini=$M" >> "$GITHUB_OUTPUT"
-          echo "frontend=$F" >> "$GITHUB_OUTPUT"
-          echo "mvn_target=$MVN" >> "$GITHUB_OUTPUT"
+      - name: 变更检测（按业务域/服务目录）
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            admin:
+              - 'backend/micro-drama-admin/**'
+              - 'backend/micro-drama-parent/**'
+              - 'backend/micro-drama-common/**'
+            user:
+              - 'backend/micro-drama-user/**'
+              - 'backend/micro-drama-parent/**'
+              - 'backend/micro-drama-common/**'
+            content:
+              - 'backend/micro-drama-content/**'
+              - 'backend/micro-drama-parent/**'
+              - 'backend/micro-drama-common/**'
+            playback:
+              - 'backend/micro-drama-playback/**'
+              - 'backend/micro-drama-parent/**'
+              - 'backend/micro-drama-common/**'
+            video:
+              - 'backend-go/micro-drama-video/**'
+              - 'backend/micro-drama-common/**'
+            payment:
+              - 'backend-go/micro-drama-payment/**'
+            frontend_admin:
+              - 'frontend/micro-drama-admin/**'
+            frontend_mini:
+              - 'frontend/micro-drama-mini-app/**'
 
-      - name: 从目录名派生镜像全名
-        id: imgnames
-        run: |
-          F="${{ env.FRONTEND_DIR }}"
-          echo "image_admin=backend-$(basename "backend/${{ env.PROJ_ADMIN }}")" >> "$GITHUB_OUTPUT"
-          echo "image_mini=backend-$(basename "backend/${{ env.PROJ_MINI }}")" >> "$GITHUB_OUTPUT"
-          echo "image_frontend=frontend-$(basename "$F")" >> "$GITHUB_OUTPUT"
+  backend-common:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.admin == 'true' ||
+      needs.changes.outputs.user == 'true' ||
+      needs.changes.outputs.content == 'true' ||
+      needs.changes.outputs.playback == 'true'
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
 
       - name: 安装 JDK8
-        if: steps.plan.outputs.mvn_target != 'none'
         uses: actions/setup-java@v4
         with:
           java-version: "8"
@@ -117,7 +119,6 @@ jobs:
           cache: maven
 
       - name: 生成 Maven 配置（直连中央仓库 + Nexus 仅用于私有 Snapshots）
-        if: steps.plan.outputs.mvn_target != 'none'
         run: |
           cat > ~/.m2/settings.xml <<'XML'
           <settings>
@@ -137,27 +138,17 @@ jobs:
               <profile>
                 <id>fast-build</id>
                 <repositories>
-                  <!-- 公共依赖直连中央仓库，速度最快 -->
                   <repository>
                     <id>central</id>
                     <url>https://repo.maven.apache.org/maven2</url>
-                    <releases>
-                      <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                      <enabled>false</enabled>
-                    </snapshots>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
                   </repository>
-                  <!-- 只在下载自家 SNAPSHOT 时才访问 Nexus，避免代理缓慢 -->
                   <repository>
                     <id>nexus-snapshots</id>
-                    <url>${{ secrets.NEXUS_URL }}/repository/maven-snapshots/</url>
-                    <releases>
-                      <enabled>false</enabled>
-                    </releases>
-                    <snapshots>
-                      <enabled>true</enabled>
-                    </snapshots>
+                    <url>${{ env.NEXUS_URL }}/repository/maven-snapshots/</url>
+                    <releases><enabled>false</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
                   </repository>
                 </repositories>
               </profile>
@@ -168,150 +159,532 @@ jobs:
           </settings>
           XML
 
-      - name: Maven 部署 — parent + common（任一角涉及后端）
-        if: |
-          (steps.plan.outputs.mvn_target == 'all' || steps.plan.outputs.mvn_target == 'admin' || steps.plan.outputs.mvn_target == 'mini')
+      - name: Maven 部署 — parent + common
         run: |
           set -e
           mvn -f backend/micro-drama-parent/pom.xml clean deploy -DskipTests
           mvn -f backend/micro-drama-common/pom.xml clean deploy -DskipTests
 
-      - name: Maven 部署 — micro-drama-admin
-        if: |
-          (steps.plan.outputs.mvn_target == 'all' || steps.plan.outputs.mvn_target == 'admin')
-        run: |
-          set -e
-          mvn -f backend/micro-drama-admin/pom.xml clean deploy -DskipTests
+  build-admin:
+    runs-on: ubuntu-latest
+    needs: [changes, backend-common]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_admin == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.admin == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-admin
+      DEPLOY_SERVICE: backend-admin
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
 
-      - name: Maven 部署 — micro-drama-mini-app
-        if: |
-          (steps.plan.outputs.mvn_target == 'all' || steps.plan.outputs.mvn_target == 'mini')
+      - name: 安装 JDK8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: 生成 Maven 配置
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
+      - name: Maven 部署 — micro-drama-admin
+        run: mvn -f backend/micro-drama-admin/pom.xml clean deploy -DskipTests
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 规范化 Docker 仓库地址
         run: |
           set -e
-          mvn -f backend/micro-drama-mini-app/pom.xml clean deploy -DskipTests
+          echo "registry=${{ env.NEXUS_DOCKER_HOST }}" >> "$GITHUB_OUTPUT"
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend/micro-drama-admin
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-user:
+    runs-on: ubuntu-latest
+    needs: [changes, backend-common]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_user == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.user == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-user
+      DEPLOY_SERVICE: backend-user
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: 生成 Maven 配置
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
+      - name: Maven 部署 — micro-drama-user
+        run: mvn -f backend/micro-drama-user/pom.xml clean deploy -DskipTests
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 规范化 Docker 仓库地址
+        run: |
+          set -e
+          echo "registry=${{ env.NEXUS_DOCKER_HOST }}" >> "$GITHUB_OUTPUT"
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend/micro-drama-user
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-content:
+    runs-on: ubuntu-latest
+    needs: [changes, backend-common]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_content == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.content == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-content
+      DEPLOY_SERVICE: backend-content
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: 生成 Maven 配置
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
+      - name: Maven 部署 — micro-drama-content
+        run: mvn -f backend/micro-drama-content/pom.xml clean deploy -DskipTests
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 规范化 Docker 仓库地址
+        run: |
+          set -e
+          echo "registry=${{ env.NEXUS_DOCKER_HOST }}" >> "$GITHUB_OUTPUT"
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend/micro-drama-content
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-playback:
+    runs-on: ubuntu-latest
+    needs: [changes, backend-common]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_playback == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.playback == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-playback
+      DEPLOY_SERVICE: backend-playback
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+          cache: maven
+
+      - name: 生成 Maven 配置
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
+      - name: Maven 部署 — micro-drama-playback
+        run: mvn -f backend/micro-drama-playback/pom.xml clean deploy -DskipTests
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 规范化 Docker 仓库地址
+        run: |
+          set -e
+          echo "registry=${{ env.NEXUS_DOCKER_HOST }}" >> "$GITHUB_OUTPUT"
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend/micro-drama-playback
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-video:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_video == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.video == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-video
+      DEPLOY_SERVICE: backend-video
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Go 编译校验
+        working-directory: backend-go/micro-drama-video
+        run: |
+          go mod download
+          go build -o /dev/null ./cmd/video-worker
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 规范化 Docker 仓库地址
+        run: |
+          set -e
+          echo "registry=${{ env.NEXUS_DOCKER_HOST }}" >> "$GITHUB_OUTPUT"
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend-go/micro-drama-video
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-payment:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_payment == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.payment == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-payment
+      DEPLOY_SERVICE: backend-payment
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Go 编译校验
+        working-directory: backend-go/micro-drama-payment
+        run: |
+          go mod download
+          go build -o /dev/null ./cmd/payment
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend-go/micro-drama-payment
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_frontend == true) ||
+      (github.event_name == 'push' && (needs.changes.outputs.frontend_admin == 'true' || needs.changes.outputs.frontend_mini == 'true'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: frontend-admin
+            dir: frontend/micro-drama-admin
+            deploy_service: frontend-admin
+            changed_output: frontend_admin
+          - name: frontend-mini
+            dir: frontend/micro-drama-mini-app
+            deploy_service: frontend-mini
+            changed_output: frontend_mini
+    env:
+      HUSKY: "0"
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 跳过未变更前端工程（push 模式）
+        if: |
+          github.event_name == 'push' &&
+          (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin != 'true' ||
+           matrix.changed_output == 'frontend_mini' && needs.changes.outputs.frontend_mini != 'true')
+        run: |
+          echo "No changes for ${{ matrix.name }}; skipping."
+          exit 0
 
       - name: 安装 pnpm
-        if: steps.plan.outputs.frontend == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: 安装 Node
-        if: steps.plan.outputs.frontend == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: 依赖缓存（仅加速，与 setup-node 解耦）
-        if: steps.plan.outputs.frontend == 'true'
+      - name: 依赖缓存（pnpm store）
         uses: actions/cache@v4
         with:
           path: /home/runner/.local/share/pnpm/store
-          key: pnpm-store-${{ hashFiles('frontend/micro-drama-admin/pnpm-lock.yaml') }}
+          key: pnpm-store-${{ hashFiles(format('{0}/pnpm-lock.yaml', matrix.dir)) }}
           restore-keys: |
             pnpm-store-
 
       - name: 前端编译
-        if: steps.plan.outputs.frontend == 'true'
-        working-directory: ${{ env.FRONTEND_DIR }}
-        env:
-          HUSKY: "0"
+        working-directory: ${{ matrix.dir }}
         run: |
           set -e
-          test -f package.json || { echo "::error::$PWD 下无 package.json，请检查 FRONTEND_DIR 或是否已提交前端目录"; ls -la; exit 1; }
+          test -f package.json || { echo "::error::$PWD 下无 package.json"; ls -la; exit 1; }
           pnpm install --frozen-lockfile
           pnpm run build
 
       - name: 配置 Docker 私服
-        if: |
-          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
         run: |
           echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
-          cat /etc/docker/daemon.json
 
       - name: 规范化 Docker 仓库地址
-        id: docker_registry
-        if: |
-          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
         run: |
           set -e
-          raw="${{ secrets.NEXUS_DOCKER_URL }}"
-          raw="$(printf '%s' "$raw" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-          host="${raw#https://}"
-          host="${host#http://}"
-          host="${host%/}"
-          if [ -z "$host" ]; then
-            echo "::error::Secret NEXUS_DOCKER_URL 为空。请填写 host:port（与 insecure-registries 一致），不要带 https:// 前缀。"
-            exit 1
-          fi
-          echo "host=$host" >> "$GITHUB_OUTPUT"
-          echo "Docker 引用前缀: $host"
+          echo "Using registry ${{ env.NEXUS_DOCKER_HOST }}"
 
       - name: 登录 Nexus Docker
-        if: |
-          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
         uses: docker/login-action@v3
         with:
-          registry: ${{ steps.docker_registry.outputs.host }}
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
           username: ${{ secrets.NEXUS_USERNAME }}
           password: ${{ secrets.NEXUS_PASSWORD }}
 
-      - name: Docker 推送 — ${{ steps.imgnames.outputs.image_admin }}
-        if: steps.plan.outputs.admin == 'true'
+      - name: Docker build & push
+        working-directory: ${{ matrix.dir }}
         run: |
           set -e
-          TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ steps.docker_registry.outputs.host }}"
-          IMG="${{ steps.imgnames.outputs.image_admin }}"
-          cd backend/micro-drama-admin
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          IMG="frontend-$(basename "${{ matrix.dir }}")"
           docker build -t "${REG}/${IMG}:${TAG}" .
           docker push "${REG}/${IMG}:${TAG}"
 
-      - name: Docker 推送 — ${{ steps.imgnames.outputs.image_mini }}
-        if: steps.plan.outputs.mini == 'true'
-        run: |
-          set -e
-          TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ steps.docker_registry.outputs.host }}"
-          IMG="${{ steps.imgnames.outputs.image_mini }}"
-          cd backend/micro-drama-mini-app
-          docker build -t "${REG}/${IMG}:${TAG}" .
-          docker push "${REG}/${IMG}:${TAG}"
-
-      - name: Docker 推送 — ${{ steps.imgnames.outputs.image_frontend }}
-        if: steps.plan.outputs.frontend == 'true'
-        run: |
-          set -e
-          TAG="${{ steps.plan.outputs.tag }}"
-          REG="${{ steps.docker_registry.outputs.host }}"
-          IMG="${{ steps.imgnames.outputs.image_frontend }}"
-          cd "${{ env.FRONTEND_DIR }}"
-          docker build -t "${REG}/${IMG}:${TAG}" .
-          docker push "${REG}/${IMG}:${TAG}"
-
-      # ========== Webhook 触发自动部署 ==========
-      - name: 调用 Webhook 触发部署
-        if: |
-          (steps.plan.outputs.admin == 'true' || steps.plan.outputs.mini == 'true' || steps.plan.outputs.frontend == 'true')
+      - name: Webhook 部署
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-          DEPLOY_ADMIN: ${{ steps.plan.outputs.admin }}
-          DEPLOY_MINI: ${{ steps.plan.outputs.mini }}
-          DEPLOY_FRONTEND: ${{ steps.plan.outputs.frontend }}
         run: |
-          SERVICES=""
-          if [ "$DEPLOY_ADMIN" = "true" ]; then
-            SERVICES="$SERVICES backend-admin"
-          fi
-          if [ "$DEPLOY_MINI" = "true" ]; then
-            SERVICES="$SERVICES backend-mini"
-          fi
-          if [ "$DEPLOY_FRONTEND" = "true" ]; then
-            SERVICES="$SERVICES frontend-admin"
-          fi
-          echo ">> 通知服务器更新服务: $SERVICES"
-          curl -s -X POST "http://deploy.144.202.122.212.nip.io/hooks/deploy" \
+          set -e
+          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services": "'"$SERVICES"'"}'
+               -d '{"services":"${{ matrix.deploy_service }}"}'
+
