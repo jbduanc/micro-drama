@@ -1,7 +1,0 @@
-com\series\admin\config\CorsConfig.class
-com\series\admin\utils\JwtUtil.class
-com\series\admin\config\SecurityConfig.class
-com\series\admin\AdminApplication.class
-com\series\admin\config\RestTemplateConfig.class
-com\series\admin\utils\SecurityUserUtils.class
-com\series\admin\filter\JwtAuthFilter.class

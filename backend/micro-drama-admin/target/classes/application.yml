@@ -1,5 +1,0 @@
-spring:
-  application:
-    name: micro-drama-admin
-  profiles:
-    active: local
