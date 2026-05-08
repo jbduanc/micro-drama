@@ -4,15 +4,6 @@ spring:
   profiles:
     active: local
 
-grpc:
-  client:
-    health:
-      enabled: false
-    content:
-      # 生产上建议走 consul / dns / lb；这里给出本地默认值
-      address: "static://127.0.0.1:9091"
-      negotiationType: PLAINTEXT
-
 management:
   health:
     grpc:
