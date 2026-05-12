@@ -8,7 +8,7 @@ export default defineConfig(() => {
   const adminApiTarget =
     process.env.VITE_ADMIN_API_TARGET ??
     process.env.ADMIN_API_TARGET ??
-    "http://144.202.122.212:6001"
+    "http://47.84.207.243:6001"
 
   return {
     plugins: [react()],

@@ -42,9 +42,9 @@ on:
 
 env:
   # 这些请配置在 GitHub Repository Variables（Settings → Secrets and variables → Actions → Variables）
-  # - NEXUS_DOCKER_HOST: 例如 nexus-docker.144.202.122.212.nip.io
-  # - NEXUS_URL: 例如 http://nexus.144.202.122.212.nip.io
-  # - DEPLOY_WEBHOOK_URL: 例如 http://deploy.144.202.122.212.nip.io/hooks/deploy
+  # - NEXUS_DOCKER_HOST: 例如 nexus-docker.47.84.207.243.nip.io
+  # - NEXUS_URL: 例如 http://nexus.47.84.207.243.nip.io
+  # - DEPLOY_WEBHOOK_URL: 例如 http://deploy.47.84.207.243.nip.io/hooks/deploy
   NEXUS_DOCKER_HOST: ${{ vars.NEXUS_DOCKER_HOST }}
   NEXUS_URL: ${{ vars.NEXUS_URL }}
   DEPLOY_WEBHOOK_URL: ${{ vars.DEPLOY_WEBHOOK_URL }}

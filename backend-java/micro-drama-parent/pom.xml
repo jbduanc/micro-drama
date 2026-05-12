@@ -187,12 +187,12 @@
         <repository>
             <id>maven-releases</id>
             <name>Nexus Release Repository</name>
-            <url>http://nexus.144.202.122.212.nip.io/repository/maven-releases/</url>
+            <url>http://nexus.47.84.207.243.nip.io/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>maven-snapshots</id>
             <name>Nexus Snapshot Repository</name>
-            <url>http://nexus.144.202.122.212.nip.io/repository/maven-snapshots/</url>
+            <url>http://nexus.47.84.207.243.nip.io/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 </project>
