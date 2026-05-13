@@ -1,15 +1,13 @@
 export type MicroDramaStatus = 0 | 1
 
 export type DramaEpisode = {
-  episodeId?: number | string
-  dramaId?: number | string
+  /** 编辑已有剧集时携带，对应后端 `DramaEpisodeDTO.episodeId` */
+  episodeId?: number
   episodeNum: number
   episodeTitle: string
   videoUrl?: string
   duration?: number
   singleEpisodePrice?: number
-  status?: MicroDramaStatus
-  sort?: number
 }
 
 /**

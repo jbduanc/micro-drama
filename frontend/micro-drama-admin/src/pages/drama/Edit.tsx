@@ -7,7 +7,14 @@ import { http } from "@/api/http"
 import type { DramaEpisode, MicroDramaDTO, Result } from "@/api/drama/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -95,7 +102,28 @@ export default function DramaEditPage() {
         sort: data.sort == null ? "" : String(data.sort),
       })
       const rawEpisodes = Array.isArray(data.episodes) ? data.episodes : []
-      setEpisodes(rawEpisodes as DramaEpisode[])
+      setEpisodes(
+        rawEpisodes.map((raw) => {
+          const r = raw as Record<string, unknown>
+          const eid = r.episodeId
+          const epIdNum =
+            eid != null && eid !== "" && Number.isFinite(Number(eid)) ? Number(eid) : undefined
+          return {
+            episodeId: epIdNum != null && epIdNum > 0 ? epIdNum : undefined,
+            episodeNum: Number(r.episodeNum ?? 0) || 0,
+            episodeTitle: String(r.episodeTitle ?? ""),
+            videoUrl: r.videoUrl ? String(r.videoUrl) : undefined,
+            duration:
+              r.duration != null && r.duration !== ""
+                ? Number(r.duration)
+                : undefined,
+            singleEpisodePrice:
+              r.singleEpisodePrice != null && r.singleEpisodePrice !== ""
+                ? Number(r.singleEpisodePrice)
+                : undefined,
+          }
+        }),
+      )
     } catch (e) {
       console.error(e)
       toast.error("加载短剧详情失败")
@@ -160,7 +188,9 @@ export default function DramaEditPage() {
       return
     }
 
+    const prevEp = editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
     const next: DramaEpisode = {
+      ...(prevEp?.episodeId != null && prevEp.episodeId > 0 ? { episodeId: prevEp.episodeId } : {}),
       episodeNum,
       episodeTitle,
       duration: toNumberOrUndefined(episodeForm.duration),
@@ -224,8 +254,17 @@ export default function DramaEditPage() {
 
     setSaving(true)
     try {
+      let dramaIdNum: number | undefined
+      if (!isCreate) {
+        dramaIdNum = Number(form.dramaId ?? dramaIdParam)
+        if (!Number.isFinite(dramaIdNum) || !Number.isInteger(dramaIdNum) || dramaIdNum <= 0) {
+          toast.error("短剧 ID 无效")
+          return
+        }
+      }
+
       const payload: MicroDramaDTO = {
-        dramaId: isCreate ? undefined : form.dramaId ?? dramaIdParam,
+        dramaId: dramaIdNum,
         title,
         coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
         description: form.description.trim() ? form.description.trim() : undefined,
@@ -234,8 +273,13 @@ export default function DramaEditPage() {
         status: Number(form.status) as 0 | 1,
         sort: sortNumber,
         episodes: episodes.map((ep) => ({
-          ...ep,
-          dramaId: isCreate ? undefined : form.dramaId ?? dramaIdParam,
+          episodeId:
+            ep.episodeId != null && ep.episodeId > 0 ? ep.episodeId : undefined,
+          episodeNum: ep.episodeNum,
+          episodeTitle: ep.episodeTitle,
+          videoUrl: ep.videoUrl,
+          duration: ep.duration,
+          singleEpisodePrice: ep.singleEpisodePrice,
         })),
       }
 
@@ -498,6 +542,9 @@ export default function DramaEditPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingEpisodeIndex == null ? "新增剧集" : "编辑剧集"}</DialogTitle>
+            <DialogDescription>
+              字段与后端一致：集数、标题、时长（秒）、单集价格、视频地址；保存短剧时一并提交。
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-2">

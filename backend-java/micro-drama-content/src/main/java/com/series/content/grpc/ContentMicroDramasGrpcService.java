@@ -18,6 +18,7 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.BeanUtils;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -137,7 +138,13 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
         dto.setTotalEpisodes(base.getTotalEpisodes());
         dto.setStatus(base.getStatus());
         dto.setSort(base.getSort());
-        // singleDramaPrice 先不从 string 反序列化成 BigDecimal（避免解析异常）；后续完善
+        if (base.getSingleDramaPrice() != null && !base.getSingleDramaPrice().isEmpty()) {
+            try {
+                dto.setSingleDramaPrice(new BigDecimal(base.getSingleDramaPrice()));
+            } catch (NumberFormatException ignored) {
+                // ignore
+            }
+        }
 
         if (detail.getEpisodesCount() > 0) {
             List<DramaEpisodeDTO> eps = detail.getEpisodesList().stream().map(ep -> {
@@ -147,6 +154,13 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
                 e.setEpisodeTitle(ep.getEpisodeTitle());
                 e.setVideoUrl(ep.getVideoUrl());
                 e.setDuration(ep.getDuration());
+                if (ep.getSingleEpisodePrice() != null && !ep.getSingleEpisodePrice().isEmpty()) {
+                    try {
+                        e.setSingleEpisodePrice(new BigDecimal(ep.getSingleEpisodePrice()));
+                    } catch (NumberFormatException ignored) {
+                        // ignore
+                    }
+                }
                 return e;
             }).collect(Collectors.toList());
             dto.setEpisodes(eps);

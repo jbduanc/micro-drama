@@ -7,6 +7,7 @@ import lombok.var;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
 
+import com.series.admin.dto.business.DramaEpisodeDTO;
 import com.series.admin.dto.business.MicroDramaDTO;
 import com.series.admin.entity.business.MicroDramas;
 
@@ -14,6 +15,9 @@ import com.series.common.grpc.content.v1.MicroDramaIdRequest;
 import com.series.common.grpc.content.v1.MicroDramaPageListRequest;
 import com.series.common.grpc.content.v1.MicroDramaSaveOrUpdateRequest;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +69,13 @@ public class MicroDramasController {
             d.setTotalEpisodes(item.getTotalEpisodes());
             d.setStatus(item.getStatus());
             d.setSort(item.getSort());
+            if (item.getSingleDramaPrice() != null && !item.getSingleDramaPrice().isEmpty()) {
+                try {
+                    d.setSingleDramaPrice(new BigDecimal(item.getSingleDramaPrice()));
+                } catch (NumberFormatException ignored) {
+                    // ignore invalid decimal string from registry
+                }
+            }
             return d;
         }).collect(Collectors.toList()));
         return out;
@@ -75,19 +86,31 @@ public class MicroDramasController {
      */
     @PostMapping("/saveOrUpdate")
     public Result<Boolean> saveOrUpdate(@RequestBody MicroDramaDTO dto) {
-        // 简化：先只传 base（episodes 后续补齐映射）
         var base = com.series.common.grpc.content.v1.MicroDramaItem.newBuilder()
                 .setDramaId(dto.getDramaId() == null ? 0L : dto.getDramaId())
                 .setTitle(dto.getTitle() == null ? "" : dto.getTitle())
                 .setCoverUrl(dto.getCoverUrl() == null ? "" : dto.getCoverUrl())
                 .setDescription(dto.getDescription() == null ? "" : dto.getDescription())
                 .setTotalEpisodes(dto.getTotalEpisodes() == null ? 0 : dto.getTotalEpisodes())
+                .setSingleDramaPrice(dto.getSingleDramaPrice() == null ? "" : dto.getSingleDramaPrice().toPlainString())
                 .setStatus(dto.getStatus() == null ? 0 : dto.getStatus())
                 .setSort(dto.getSort() == null ? 0 : dto.getSort())
                 .build();
-        var detail = com.series.common.grpc.content.v1.MicroDramaDetail.newBuilder()
-                .setBase(base)
-                .build();
+        com.series.common.grpc.content.v1.MicroDramaDetail.Builder detailBuilder =
+                com.series.common.grpc.content.v1.MicroDramaDetail.newBuilder().setBase(base);
+        if (dto.getEpisodes() != null) {
+            for (DramaEpisodeDTO ep : dto.getEpisodes()) {
+                detailBuilder.addEpisodes(com.series.common.grpc.content.v1.Episode.newBuilder()
+                        .setEpisodeId(ep.getEpisodeId() == null ? 0 : ep.getEpisodeId())
+                        .setEpisodeNum(ep.getEpisodeNum() == null ? 0 : ep.getEpisodeNum())
+                        .setEpisodeTitle(ep.getEpisodeTitle() == null ? "" : ep.getEpisodeTitle())
+                        .setVideoUrl(ep.getVideoUrl() == null ? "" : ep.getVideoUrl())
+                        .setSingleEpisodePrice(ep.getSingleEpisodePrice() == null ? "" : ep.getSingleEpisodePrice().toPlainString())
+                        .setDuration(ep.getDuration() == null ? 0 : ep.getDuration())
+                        .build());
+            }
+        }
+        var detail = detailBuilder.build();
         MicroDramaSaveOrUpdateRequest req = MicroDramaSaveOrUpdateRequest.newBuilder().setDrama(detail).build();
         var resp = contentGrpc().stub().saveOrUpdate(req);
         return Result.ok(resp.getOk());
@@ -102,16 +125,43 @@ public class MicroDramasController {
         if (!resp.hasDrama() || !resp.getDrama().hasBase()) {
             return Result.error("短剧不存在");
         }
-        var base = resp.getDrama().getBase();
+        var drama = resp.getDrama();
+        var base = drama.getBase();
         MicroDramaDTO out = new MicroDramaDTO();
-        out.setDramaId(base.getDramaId());
+        out.setDramaId(base.getDramaId() == 0 ? null : base.getDramaId());
         out.setTitle(base.getTitle());
         out.setCoverUrl(base.getCoverUrl());
         out.setDescription(base.getDescription());
         out.setTotalEpisodes(base.getTotalEpisodes());
         out.setStatus(base.getStatus());
         out.setSort(base.getSort());
-        // episodes 映射后续补齐
+        if (base.getSingleDramaPrice() != null && !base.getSingleDramaPrice().isEmpty()) {
+            try {
+                out.setSingleDramaPrice(new BigDecimal(base.getSingleDramaPrice()));
+            } catch (NumberFormatException ignored) {
+                // ignore
+            }
+        }
+        if (drama.getEpisodesCount() > 0) {
+            List<DramaEpisodeDTO> eps = new ArrayList<>();
+            drama.getEpisodesList().forEach(ep -> {
+                DramaEpisodeDTO e = new DramaEpisodeDTO();
+                e.setEpisodeId(ep.getEpisodeId() == 0 ? null : ep.getEpisodeId());
+                e.setEpisodeNum(ep.getEpisodeNum());
+                e.setEpisodeTitle(ep.getEpisodeTitle());
+                e.setVideoUrl(ep.getVideoUrl());
+                e.setDuration(ep.getDuration());
+                if (ep.getSingleEpisodePrice() != null && !ep.getSingleEpisodePrice().isEmpty()) {
+                    try {
+                        e.setSingleEpisodePrice(new BigDecimal(ep.getSingleEpisodePrice()));
+                    } catch (NumberFormatException ignored) {
+                        // ignore
+                    }
+                }
+                eps.add(e);
+            });
+            out.setEpisodes(eps);
+        }
         return Result.ok(out);
     }
 
