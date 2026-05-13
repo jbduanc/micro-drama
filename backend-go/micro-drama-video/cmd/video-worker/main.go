@@ -38,6 +38,7 @@ func main() {
 	}
 
 	log.Info("micro-drama-video worker started",
+		zap.Bool("kafka_enabled", cfg.Kafka.Enabled),
 		zap.Strings("brokers", cfg.Kafka.Brokers),
 		zap.String("topic", cfg.Kafka.TopicUploadCompleted),
 	)

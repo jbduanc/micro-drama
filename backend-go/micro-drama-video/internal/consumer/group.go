@@ -13,6 +13,15 @@ import (
 	"micro-drama-video/internal/worker"
 )
 
+func runIdleUntilCtx(ctx context.Context, log *zap.Logger, wg *sync.WaitGroup, msg string) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		log.Info(msg)
+		<-ctx.Done()
+	}()
+}
+
 type Handler struct {
 	log    *zap.Logger
 	cfg    *config.Config
@@ -67,6 +76,14 @@ func (h *Handler) publishJSON(topic string, v any) {
 }
 
 func RunGroup(ctx context.Context, log *zap.Logger, cfg *config.Config, wg *sync.WaitGroup) error {
+	if !cfg.Kafka.Enabled || len(cfg.Kafka.Brokers) == 0 {
+		log.Info("kafka disabled or no brokers; process stays up without consuming",
+			zap.Bool("kafka_enabled", cfg.Kafka.Enabled),
+			zap.Strings("brokers", cfg.Kafka.Brokers))
+		runIdleUntilCtx(ctx, log, wg, "idle until shutdown (kafka off)")
+		return nil
+	}
+
 	saramaCfg := sarama.NewConfig()
 	saramaCfg.Version = sarama.V2_8_0_0
 	saramaCfg.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
@@ -81,13 +98,20 @@ func RunGroup(ctx context.Context, log *zap.Logger, cfg *config.Config, wg *sync
 
 	group, err := sarama.NewConsumerGroup(cfg.Kafka.Brokers, cfg.Kafka.ConsumerGroup, saramaCfg)
 	if err != nil {
-		return err
+		if prod != nil {
+			_ = prod.Close()
+		}
+		log.Warn("kafka consumer unavailable; process stays up without consuming", zap.Error(err))
+		runIdleUntilCtx(ctx, log, wg, "idle until shutdown (kafka unreachable)")
+		return nil
 	}
+
 	handler := NewHandler(log, cfg, prod)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		defer func() { _ = group.Close() }()
 		for {
 			if err := group.Consume(ctx, []string{cfg.Kafka.TopicUploadCompleted}, handler); err != nil {
 				log.Error("consume", zap.Error(err))

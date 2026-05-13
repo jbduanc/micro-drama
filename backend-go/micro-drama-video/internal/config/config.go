@@ -13,6 +13,7 @@ func Load() (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	v.SetDefault("kafka_enabled", true)
 	v.SetDefault("kafka_brokers", "localhost:9092")
 	v.SetDefault("kafka_consumer_group", "micro-drama-video")
 	v.SetDefault("kafka_topic_upload_completed", "content.video.upload_completed")
@@ -30,6 +31,7 @@ func Load() (*Config, error) {
 	v.SetDefault("work_dir", "/tmp/micro-drama-video")
 
 	var c Config
+	c.Kafka.Enabled = v.GetBool("kafka_enabled")
 	c.Kafka.Brokers = splitCSV(v.GetString("kafka_brokers"))
 	c.Kafka.ConsumerGroup = v.GetString("kafka_consumer_group")
 	c.Kafka.TopicUploadCompleted = v.GetString("kafka_topic_upload_completed")
@@ -62,6 +64,7 @@ func splitCSV(s string) []string {
 
 type Config struct {
 	Kafka struct {
+		Enabled                 bool
 		Brokers                 []string
 		ConsumerGroup           string
 		TopicUploadCompleted    string
