@@ -3,3 +3,8 @@ spring:
     name: micro-drama-user
   profiles:
     active: local
+
+management:
+  health:
+    grpc:
+      enabled: false

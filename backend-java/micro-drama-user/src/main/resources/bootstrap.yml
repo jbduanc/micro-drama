@@ -1,0 +1,31 @@
+# 启动阶段从 Consul KV 拉取配置，与 application*.yml 合并后 Consul 侧优先级更高。
+# Consul 地址（任选其一，与 Spring Boot 一致）：
+#   --spring.cloud.consul.host= / --spring.cloud.consul.port=
+#   SPRING_CLOUD_CONSUL_HOST、SPRING_CLOUD_CONSUL_PORT
+#   -DCONSUL_HOST= -DCONSUL_PORT=（对应下方占位符）
+# bootstrap.yml 已排除 Maven 资源过滤，可使用 ${CONSUL_HOST:...} 占位符。
+#
+# 默认从 config/micro-drama-user/data 读取；若 KV 挂在 config/user-service/data，
+# 设置环境变量 CONSUL_CONFIG_NAME=user-service 或修改下方 spring.cloud.consul.config.name。
+spring:
+  application:
+    name: micro-drama-user
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: YAML
+        prefix: config
+        data-key: data
+        name: ${CONSUL_CONFIG_NAME:micro-drama-user}
+        watch:
+          enabled: true
+        fail-fast: false
+      discovery:
+        enabled: true
+        register: true
+        prefer-ip-address: true
+        health-check-path: /user-api/actuator/health
+        health-check-interval: 10s
