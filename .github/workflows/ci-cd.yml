@@ -232,7 +232,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -310,7 +310,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -388,7 +388,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -448,7 +448,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -508,7 +508,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -563,7 +563,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
@@ -655,7 +655,7 @@ jobs:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -s -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
                -d '{"services":"${{ matrix.deploy_service }}"}'

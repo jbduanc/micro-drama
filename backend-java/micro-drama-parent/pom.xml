@@ -49,13 +49,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- gRPC（统一版本管理，避免各子模块缺 version 导致 CI 失败） -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-inprocess</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-
             <!-- 数据库相关 -->
             <!--<dependency>
                 <groupId>jakarta.validation</groupId>
@@ -105,6 +98,18 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!--
+              统一 io.grpc 版本。net.devh grpc-*-spring-boot-starter 2.13.x 传递 io.grpc 1.42.x；
+              与 proto / grpc-netty-shaded 1.65.x 混用会导致 NoClassDefFoundError（如 KeepAliveEnforcer）。
+              必须放在 Spring BOM import 之后，以覆盖传递依赖中的旧 gRPC。
+            -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

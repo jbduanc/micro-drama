@@ -129,21 +129,18 @@
             <version>1.6.2</version>
         </dependency>
 
-        <!-- gRPC / Protobuf（跨服务通信契约） -->
+        <!-- gRPC / Protobuf（跨服务通信契约；版本由父 POM grpc-bom 与 ${grpc.version} 对齐） -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.65.1</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.65.1</version>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.65.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
