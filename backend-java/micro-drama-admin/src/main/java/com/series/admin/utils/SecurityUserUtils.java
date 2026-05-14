@@ -66,9 +66,9 @@ public class SecurityUserUtils {
     }
 
     /**
-     * 获取当前登录用户ID
+     * 获取当前登录用户ID（platform_db.sys_user.id，UUID）
      */
-    public static Long getCurrentUserId() {
+    public static String getCurrentUserId() {
         SysUser user = getCurrentUser();
         return user == null ? null : user.getId();
     }

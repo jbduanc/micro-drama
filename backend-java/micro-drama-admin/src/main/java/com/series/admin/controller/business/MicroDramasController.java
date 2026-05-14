@@ -20,14 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * <p>
- * 短剧主表 前端控制器
- * </p>
- *
- * @author djbo
- * @since 2026-04-15
- */
 @RestController
 @RequestMapping("/microDramas")
 public class MicroDramasController {
@@ -46,9 +38,10 @@ public class MicroDramasController {
         return client;
     }
 
-    /**
-     * 分页查询短剧列表
-     */
+    private static String grpcId(String id) {
+        return id == null ? "" : id;
+    }
+
     @PostMapping("/pageList")
     public TablePageInfo<MicroDramas> pageList(@RequestBody MicroDramaDTO queryVO) {
         MicroDramaPageListRequest req = MicroDramaPageListRequest.newBuilder()
@@ -57,23 +50,21 @@ public class MicroDramasController {
                 .build();
         var resp = contentGrpc().stub().pageList(req);
 
-        // 兼容旧返回结构：TablePageInfo<MicroDramas>
         TablePageInfo<MicroDramas> out = new TablePageInfo<>();
         out.setTotal(resp.getTotal());
         out.setData(resp.getDataList().stream().map(item -> {
             MicroDramas d = new MicroDramas();
-            d.setDramaId(item.getDramaId());
+            d.setId(item.getDramaId().isEmpty() ? null : item.getDramaId());
             d.setTitle(item.getTitle());
             d.setCoverUrl(item.getCoverUrl());
             d.setDescription(item.getDescription());
             d.setTotalEpisodes(item.getTotalEpisodes());
             d.setStatus(item.getStatus());
             d.setSort(item.getSort());
-            if (item.getSingleDramaPrice() != null && !item.getSingleDramaPrice().isEmpty()) {
+            if (item.getPrice() != null && !item.getPrice().isEmpty()) {
                 try {
-                    d.setSingleDramaPrice(new BigDecimal(item.getSingleDramaPrice()));
+                    d.setPrice(new BigDecimal(item.getPrice()));
                 } catch (NumberFormatException ignored) {
-                    // ignore invalid decimal string from registry
                 }
             }
             return d;
@@ -81,18 +72,15 @@ public class MicroDramasController {
         return out;
     }
 
-    /**
-     * 新增/编辑短剧（含剧集信息）
-     */
     @PostMapping("/saveOrUpdate")
     public Result<Boolean> saveOrUpdate(@RequestBody MicroDramaDTO dto) {
         var base = com.series.common.grpc.content.v1.MicroDramaItem.newBuilder()
-                .setDramaId(dto.getDramaId() == null ? 0L : dto.getDramaId())
+                .setDramaId(grpcId(dto.getId()))
                 .setTitle(dto.getTitle() == null ? "" : dto.getTitle())
                 .setCoverUrl(dto.getCoverUrl() == null ? "" : dto.getCoverUrl())
                 .setDescription(dto.getDescription() == null ? "" : dto.getDescription())
                 .setTotalEpisodes(dto.getTotalEpisodes() == null ? 0 : dto.getTotalEpisodes())
-                .setSingleDramaPrice(dto.getSingleDramaPrice() == null ? "" : dto.getSingleDramaPrice().toPlainString())
+                .setPrice(dto.getPrice() == null ? "" : dto.getPrice().toPlainString())
                 .setStatus(dto.getStatus() == null ? 0 : dto.getStatus())
                 .setSort(dto.getSort() == null ? 0 : dto.getSort())
                 .build();
@@ -101,11 +89,11 @@ public class MicroDramasController {
         if (dto.getEpisodes() != null) {
             for (DramaEpisodeDTO ep : dto.getEpisodes()) {
                 detailBuilder.addEpisodes(com.series.common.grpc.content.v1.Episode.newBuilder()
-                        .setEpisodeId(ep.getEpisodeId() == null ? 0 : ep.getEpisodeId())
+                        .setEpisodeId(grpcId(ep.getId()))
                         .setEpisodeNum(ep.getEpisodeNum() == null ? 0 : ep.getEpisodeNum())
-                        .setEpisodeTitle(ep.getEpisodeTitle() == null ? "" : ep.getEpisodeTitle())
-                        .setVideoUrl(ep.getVideoUrl() == null ? "" : ep.getVideoUrl())
-                        .setSingleEpisodePrice(ep.getSingleEpisodePrice() == null ? "" : ep.getSingleEpisodePrice().toPlainString())
+                        .setTitle(ep.getTitle() == null ? "" : ep.getTitle())
+                        .setVideoAssetId(ep.getVideoAssetId() == null ? "" : ep.getVideoAssetId())
+                        .setPrice(ep.getPrice() == null ? "" : ep.getPrice().toPlainString())
                         .setDuration(ep.getDuration() == null ? 0 : ep.getDuration())
                         .build());
             }
@@ -116,46 +104,41 @@ public class MicroDramasController {
         return Result.ok(resp.getOk());
     }
 
-    /**
-     * 根据ID查询短剧详情（含剧集列表）
-     */
     @GetMapping("/detail/{dramaId}")
-    public Result<MicroDramaDTO> getDetail(@PathVariable Integer dramaId) {
-        var resp = contentGrpc().stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
+    public Result<MicroDramaDTO> getDetail(@PathVariable String dramaId) {
+        var resp = contentGrpc().stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
         if (!resp.hasDrama() || !resp.getDrama().hasBase()) {
             return Result.error("短剧不存在");
         }
         var drama = resp.getDrama();
         var base = drama.getBase();
         MicroDramaDTO out = new MicroDramaDTO();
-        out.setDramaId(base.getDramaId() == 0 ? null : base.getDramaId());
+        out.setId(base.getDramaId().isEmpty() ? null : base.getDramaId());
         out.setTitle(base.getTitle());
         out.setCoverUrl(base.getCoverUrl());
         out.setDescription(base.getDescription());
         out.setTotalEpisodes(base.getTotalEpisodes());
         out.setStatus(base.getStatus());
         out.setSort(base.getSort());
-        if (base.getSingleDramaPrice() != null && !base.getSingleDramaPrice().isEmpty()) {
+        if (base.getPrice() != null && !base.getPrice().isEmpty()) {
             try {
-                out.setSingleDramaPrice(new BigDecimal(base.getSingleDramaPrice()));
+                out.setPrice(new BigDecimal(base.getPrice()));
             } catch (NumberFormatException ignored) {
-                // ignore
             }
         }
         if (drama.getEpisodesCount() > 0) {
             List<DramaEpisodeDTO> eps = new ArrayList<>();
             drama.getEpisodesList().forEach(ep -> {
                 DramaEpisodeDTO e = new DramaEpisodeDTO();
-                e.setEpisodeId(ep.getEpisodeId() == 0 ? null : ep.getEpisodeId());
+                e.setId(ep.getEpisodeId().isEmpty() ? null : ep.getEpisodeId());
                 e.setEpisodeNum(ep.getEpisodeNum());
-                e.setEpisodeTitle(ep.getEpisodeTitle());
-                e.setVideoUrl(ep.getVideoUrl());
+                e.setTitle(ep.getTitle());
+                e.setVideoAssetId(ep.getVideoAssetId());
                 e.setDuration(ep.getDuration());
-                if (ep.getSingleEpisodePrice() != null && !ep.getSingleEpisodePrice().isEmpty()) {
+                if (ep.getPrice() != null && !ep.getPrice().isEmpty()) {
                     try {
-                        e.setSingleEpisodePrice(new BigDecimal(ep.getSingleEpisodePrice()));
+                        e.setPrice(new BigDecimal(ep.getPrice()));
                     } catch (NumberFormatException ignored) {
-                        // ignore
                     }
                 }
                 eps.add(e);
@@ -165,12 +148,9 @@ public class MicroDramasController {
         return Result.ok(out);
     }
 
-    /**
-     * 根据ID删除短剧（级联删除所有剧集）
-     */
     @PostMapping("/delete/{dramaId}")
-    public Result<Boolean> delete(@PathVariable Integer dramaId) {
-        var resp = contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(dramaId).build());
+    public Result<Boolean> delete(@PathVariable String dramaId) {
+        var resp = contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
         return Result.ok(resp.getOk());
     }
 }

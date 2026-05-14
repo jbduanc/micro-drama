@@ -49,7 +49,7 @@ export default function DramaListPage() {
     }
   }
 
-  async function handleDelete(dramaId?: MicroDramaDTO["dramaId"]) {
+  async function handleDelete(dramaId?: string) {
     if (!dramaId) return
     const confirmed = window.confirm("确定删除该短剧吗？将级联删除所有剧集。")
     if (!confirmed) return
@@ -164,8 +164,10 @@ export default function DramaListPage() {
 
               {!loading &&
                 rows.map((row, idx) => (
-                  <TableRow key={String(row.dramaId ?? row.title ?? `row-${idx}`)}>
-                    <TableCell>{row.dramaId ?? "-"}</TableCell>
+                  <TableRow key={String(row.id ?? row.title ?? `row-${idx}`)}>
+                    <TableCell className="max-w-[140px] truncate font-mono text-xs" title={row.id}>
+                      {row.id ?? "-"}
+                    </TableCell>
                     <TableCell className="font-medium">{row.title ?? "-"}</TableCell>
                     <TableCell>
                       {row.coverUrl ? (
@@ -179,7 +181,7 @@ export default function DramaListPage() {
                       )}
                     </TableCell>
                     <TableCell>{row.totalEpisodes ?? "-"}</TableCell>
-                    <TableCell>{row.singleDramaPrice ?? "-"}</TableCell>
+                    <TableCell>{row.price ?? "-"}</TableCell>
                     <TableCell>
                       <span
                         className={
@@ -197,16 +199,16 @@ export default function DramaListPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => navigate(`/dramas/${row.dramaId}`)}
-                          disabled={!row.dramaId}
+                          onClick={() => navigate(`/dramas/${row.id}`)}
+                          disabled={!row.id}
                         >
                           编辑
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(row.dramaId)}
-                          disabled={!row.dramaId}
+                          onClick={() => handleDelete(row.id)}
+                          disabled={!row.id}
                         >
                           删除
                         </Button>

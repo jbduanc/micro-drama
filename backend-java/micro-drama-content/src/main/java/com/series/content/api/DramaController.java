@@ -17,7 +17,7 @@ public class DramaController {
     public Result<DramaListItem> create(@RequestBody DramaCreateRequest req) {
         // 占位：后续落库 drama/episode 等实体
         DramaListItem item = new DramaListItem();
-        item.setDramaId(UUID.randomUUID().toString());
+        item.setId(UUID.randomUUID().toString());
         item.setTitle(req.getTitle());
         item.setCoverUrl(req.getCoverUrl());
         return Result.ok(item);

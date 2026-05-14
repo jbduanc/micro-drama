@@ -24,7 +24,7 @@ import {
 import { http } from '@/api/http'
 
 type MemberPlan = {
-  planId: number
+  id: string
   planName: string
   price: number
   durationDays: number
@@ -65,7 +65,7 @@ export default function PlanListPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({
     planName: '',
     price: '',
@@ -112,11 +112,11 @@ export default function PlanListPage() {
     setDialogOpen(true)
   }
 
-  async function openEdit(planId: number) {
-    setEditingId(planId)
+  async function openEdit(id: string) {
+    setEditingId(id)
     setDialogOpen(true)
     try {
-      const res = await http.get<Result<MemberPlan>>(`/memberPlans/getById/${planId}`)
+      const res = await http.get<Result<MemberPlan>>(`/memberPlans/getById/${id}`)
       const data = res.data?.data
       if (!data) throw new Error('empty data')
       setForm({
@@ -152,7 +152,7 @@ export default function PlanListPage() {
     setSaving(true)
     try {
       const payload = {
-        planId: editingId ?? undefined,
+        id: editingId ?? undefined,
         planName,
         price: priceNumber,
         durationDays: daysNumber,
@@ -172,11 +172,11 @@ export default function PlanListPage() {
     }
   }
 
-  async function handleDelete(planId: number) {
+  async function handleDelete(id: string) {
     const confirmed = window.confirm('确定删除该会员套餐吗？')
     if (!confirmed) return
     try {
-      const res = await http.post<Result<boolean>>(`/memberPlans/delete/${planId}`)
+      const res = await http.post<Result<boolean>>(`/memberPlans/delete/${id}`)
       const ok = res.data?.data
       if (!ok) throw new Error(res.data?.msg || res.data?.message || 'delete failed')
       toast.success('删除成功')
@@ -285,8 +285,10 @@ export default function PlanListPage() {
 
               {!loading &&
                 rows.map((plan) => (
-                  <TableRow key={plan.planId}>
-                    <TableCell>{plan.planId}</TableCell>
+                  <TableRow key={plan.id}>
+                    <TableCell className="max-w-[120px] truncate font-mono text-xs" title={plan.id}>
+                      {plan.id}
+                    </TableCell>
                     <TableCell className="font-medium">{plan.planName}</TableCell>
                     <TableCell>{plan.durationDays}</TableCell>
                     <TableCell>{plan.price}</TableCell>
@@ -303,13 +305,13 @@ export default function PlanListPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openEdit(plan.planId)}>
+                        <Button size="sm" variant="outline" onClick={() => openEdit(plan.id)}>
                           编辑
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(plan.planId)}
+                          onClick={() => handleDelete(plan.id)}
                         >
                           删除
                         </Button>

@@ -19,8 +19,8 @@ on:
         description: 构建 backend-java/micro-drama-content（镜像 backend-micro-drama-content）
         type: boolean
         default: true
-      build_playback:
-        description: 构建 backend-go/micro-drama-playback（镜像 backend-micro-drama-playback）
+      build_transcoder:
+        description: 构建 backend-go/micro-drama-transcoder（镜像 backend-micro-drama-transcoder）
         type: boolean
         default: true
       build_video:
@@ -56,7 +56,7 @@ jobs:
       admin: ${{ steps.filter.outputs.admin }}
       user: ${{ steps.filter.outputs.user }}
       content: ${{ steps.filter.outputs.content }}
-      playback: ${{ steps.filter.outputs.playback }}
+      transcoder: ${{ steps.filter.outputs.transcoder }}
       video: ${{ steps.filter.outputs.video }}
       payment: ${{ steps.filter.outputs.payment }}
       frontend_admin: ${{ steps.filter.outputs.frontend_admin }}
@@ -83,8 +83,8 @@ jobs:
               - 'backend-java/micro-drama-content/**'
               - 'backend-java/micro-drama-parent/**'
               - 'backend-java/micro-drama-common/**'
-            playback:
-              - 'backend-go/micro-drama-playback/**'
+            transcoder:
+              - 'backend-go/micro-drama-transcoder/**'
             video:
               - 'backend-go/micro-drama-video/**'
             payment:
@@ -100,7 +100,7 @@ jobs:
       needs.changes.outputs.admin == 'true' ||
       needs.changes.outputs.user == 'true' ||
       needs.changes.outputs.content == 'true' ||
-      needs.changes.outputs.playback == 'true'
+      needs.changes.outputs.transcoder == 'true'
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -393,15 +393,15 @@ jobs:
                -H "Content-Type: application/json" \
                -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
 
-  build-playback:
+  build-transcoder:
     runs-on: ubuntu-latest
     needs: [changes]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_playback == true) ||
-      (github.event_name == 'push' && needs.changes.outputs.playback == 'true')
+      (github.event_name == 'workflow_dispatch' && inputs.build_transcoder == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.transcoder == 'true')
     env:
-      IMAGE_NAME: backend-micro-drama-playback
-      DEPLOY_SERVICE: backend-playback
+      IMAGE_NAME: backend-micro-drama-transcoder
+      DEPLOY_SERVICE: backend-transcoder
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -412,10 +412,10 @@ jobs:
           go-version: "1.22"
 
       - name: Go 编译校验
-        working-directory: backend-go/micro-drama-playback
+        working-directory: backend-go/micro-drama-transcoder
         run: |
           go mod download
-          go build -o /dev/null ./cmd/playback
+          go build -o /dev/null ./cmd/transcoder
 
       - name: 配置 Docker 私服
         run: |
@@ -439,7 +439,7 @@ jobs:
           set -e
           TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
           REG="${{ env.NEXUS_DOCKER_HOST }}"
-          cd backend-go/micro-drama-playback
+          cd backend-go/micro-drama-transcoder
           docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 

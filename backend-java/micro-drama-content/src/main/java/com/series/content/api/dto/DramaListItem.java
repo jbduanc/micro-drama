@@ -8,8 +8,8 @@ import java.io.Serializable;
 public class DramaListItem implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private String dramaId;
+    /** 对应 content_db.drama.id */
+    private String id;
     private String title;
     private String coverUrl;
 }
-

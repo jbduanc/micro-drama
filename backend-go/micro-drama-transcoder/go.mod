@@ -1,4 +1,4 @@
-module micro-drama-playback
+module micro-drama-transcoder
 
 go 1.22
 

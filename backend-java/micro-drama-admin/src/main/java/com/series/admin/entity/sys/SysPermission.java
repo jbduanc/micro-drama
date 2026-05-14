@@ -1,7 +1,7 @@
 package com.series.admin.entity.sys;
 
-
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -9,35 +9,24 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 系统权限表(接口/菜单)实体
+ * 对应 platform_db.sys_permission
  */
 @Data
 @TableName("sys_permission")
 public class SysPermission {
 
-    /**
-     * 主键ID
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.ASSIGN_UUID)
+    private String id;
 
-    /**
-     * 权限名称(非空)
-     */
+    @TableField("perm_name")
     private String permName;
 
-    /**
-     * 权限编码(唯一非空)
-     */
+    @TableField("perm_code")
     private String permCode;
 
-    /**
-     * 权限类型 API/MENU
-     */
+    @TableField("perm_type")
     private String permType;
 
-    /**
-     * 创建时间
-     */
+    @TableField("created_at")
     private LocalDateTime createTime;
 }

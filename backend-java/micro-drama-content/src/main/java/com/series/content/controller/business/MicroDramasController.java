@@ -14,9 +14,7 @@ import java.util.List;
 import static com.github.pagehelper.page.PageMethod.startPage;
 
 /**
- * 短剧主表（内容域）
- *
- * 说明：为保证迁移平滑，接口路径暂时保持与 admin 一致：/microDramas/**
+ * 短剧主表（内容域），表 drama / episode
  */
 @RestController
 @RequestMapping("/microDramas")
@@ -38,14 +36,13 @@ public class MicroDramasController {
     }
 
     @GetMapping("/detail/{dramaId}")
-    public Result<MicroDramaDTO> getDetail(@PathVariable Integer dramaId) {
+    public Result<MicroDramaDTO> getDetail(@PathVariable String dramaId) {
         MicroDramaDTO detail = microDramasService.getMicroDramaDetailById(dramaId);
         return detail != null ? Result.ok(detail) : Result.error("短剧不存在");
     }
 
     @PostMapping("/delete/{dramaId}")
-    public Result<Boolean> delete(@PathVariable Integer dramaId) {
+    public Result<Boolean> delete(@PathVariable String dramaId) {
         return Result.ok(microDramasService.removeMicroDrama(dramaId));
     }
 }
-

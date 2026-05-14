@@ -11,8 +11,7 @@ public interface IMicroDramasService extends IService<MicroDramas> {
 
     boolean saveOrUpdateMicroDrama(MicroDramaDTO dto);
 
-    MicroDramaDTO getMicroDramaDetailById(Integer dramaId);
+    MicroDramaDTO getMicroDramaDetailById(String dramaId);
 
-    boolean removeMicroDrama(Integer dramaId);
+    boolean removeMicroDrama(String dramaId);
 }
-

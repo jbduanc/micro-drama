@@ -1,34 +1,34 @@
 export type MicroDramaStatus = 0 | 1
 
+/** 对应 content_db.episode */
 export type DramaEpisode = {
-  /** 编辑已有剧集时携带，对应后端 `DramaEpisodeDTO.episodeId` */
-  episodeId?: number
+  /** 已有剧集 UUID，新建不传 */
+  id?: string
   episodeNum: number
-  episodeTitle: string
-  videoUrl?: string
+  title: string
+  /** 关联 video_db.video_asset.id */
+  videoAssetId?: string
   duration?: number
-  singleEpisodePrice?: number
+  price?: number
 }
 
 /**
- * 与后端 `MicroDramaDTO` 对齐（用于列表查询、详情、保存）
+ * 与后端 `MicroDramaDTO` 对齐（content_db.drama）
  */
 export type MicroDramaDTO = {
-  // 分页参数
   page?: number
   size?: number
 
-  // 短剧基本信息
-  dramaId?: number | string
+  /** drama 主键 UUID */
+  id?: string
   title?: string
   coverUrl?: string
   description?: string
   totalEpisodes?: number
-  singleDramaPrice?: number
+  price?: number
   status?: MicroDramaStatus
   sort?: number
 
-  // 关联剧集列表（新增/编辑时提交；详情返回）
   episodes?: DramaEpisode[]
 }
 

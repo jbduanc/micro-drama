@@ -15,7 +15,6 @@ import com.series.content.entity.business.MicroDramas;
 import com.series.content.service.business.IMicroDramasService;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.beans.BeanUtils;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -31,14 +30,16 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     private static final SimpleDateFormat DF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+    private static String grpcId(String id) {
+        return id == null ? "" : id;
+    }
+
     @Override
     public void pageList(MicroDramaPageListRequest request, StreamObserver<MicroDramaPageListResponse> responseObserver) {
         MicroDramaDTO q = new MicroDramaDTO();
         q.setPage(request.getPage());
         q.setSize(request.getSize());
 
-        // 这里复用原 service.list（目前只是按创建时间倒序），分页由 PageHelper 在 HTTP Controller 里触发；
-        // gRPC 版先做简化：返回全量 list + total。后续可在 service 层统一分页实现。
         List<MicroDramas> list = microDramasService.list(q);
 
         List<MicroDramaItem> items = list.stream().map(this::toItem).collect(Collectors.toList());
@@ -64,7 +65,7 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     @Override
     public void detail(MicroDramaIdRequest request, StreamObserver<MicroDramaDetailResponse> responseObserver) {
-        MicroDramaDTO dto = microDramasService.getMicroDramaDetailById((int) request.getDramaId());
+        MicroDramaDTO dto = microDramasService.getMicroDramaDetailById(request.getDramaId());
         MicroDramaDetailResponse resp = MicroDramaDetailResponse.newBuilder()
                 .setDrama(dto == null ? MicroDramaDetail.getDefaultInstance() : toDetail(dto))
                 .build();
@@ -74,7 +75,7 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     @Override
     public void delete(MicroDramaIdRequest request, StreamObserver<BoolResult> responseObserver) {
-        boolean ok = microDramasService.removeMicroDrama((int) request.getDramaId());
+        boolean ok = microDramasService.removeMicroDrama(request.getDramaId());
         BoolResult resp = BoolResult.newBuilder()
                 .setOk(ok)
                 .setMsg(ok ? "OK" : "FAILED")
@@ -85,12 +86,12 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     private MicroDramaItem toItem(MicroDramas d) {
         MicroDramaItem.Builder b = MicroDramaItem.newBuilder();
-        b.setDramaId(d.getDramaId() == null ? 0L : d.getDramaId());
+        b.setDramaId(grpcId(d.getId()));
         b.setTitle(d.getTitle() == null ? "" : d.getTitle());
         b.setCoverUrl(d.getCoverUrl() == null ? "" : d.getCoverUrl());
         b.setDescription(d.getDescription() == null ? "" : d.getDescription());
         b.setTotalEpisodes(d.getTotalEpisodes() == null ? 0 : d.getTotalEpisodes());
-        b.setSingleDramaPrice(d.getSingleDramaPrice() == null ? "" : d.getSingleDramaPrice().toPlainString());
+        b.setPrice(d.getPrice() == null ? "" : d.getPrice().toPlainString());
         b.setStatus(d.getStatus() == null ? 0 : d.getStatus());
         b.setSort(d.getSort() == null ? 0 : d.getSort());
         b.setCreateTime(d.getCreateTime() == null ? "" : DF.format(d.getCreateTime()));
@@ -100,12 +101,12 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     private MicroDramaDetail toDetail(MicroDramaDTO dto) {
         MicroDramaItem base = MicroDramaItem.newBuilder()
-                .setDramaId(dto.getDramaId() == null ? 0L : dto.getDramaId())
+                .setDramaId(grpcId(dto.getId()))
                 .setTitle(dto.getTitle() == null ? "" : dto.getTitle())
                 .setCoverUrl(dto.getCoverUrl() == null ? "" : dto.getCoverUrl())
                 .setDescription(dto.getDescription() == null ? "" : dto.getDescription())
                 .setTotalEpisodes(dto.getTotalEpisodes() == null ? 0 : dto.getTotalEpisodes())
-                .setSingleDramaPrice(dto.getSingleDramaPrice() == null ? "" : dto.getSingleDramaPrice().toPlainString())
+                .setPrice(dto.getPrice() == null ? "" : dto.getPrice().toPlainString())
                 .setStatus(dto.getStatus() == null ? 0 : dto.getStatus())
                 .setSort(dto.getSort() == null ? 0 : dto.getSort())
                 .build();
@@ -113,11 +114,11 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
         MicroDramaDetail.Builder b = MicroDramaDetail.newBuilder().setBase(base);
         if (dto.getEpisodes() != null) {
             b.addAllEpisodes(dto.getEpisodes().stream().map(ep -> com.series.common.grpc.content.v1.Episode.newBuilder()
-                    .setEpisodeId(ep.getEpisodeId() == null ? 0 : ep.getEpisodeId())
+                    .setEpisodeId(grpcId(ep.getId()))
                     .setEpisodeNum(ep.getEpisodeNum() == null ? 0 : ep.getEpisodeNum())
-                    .setEpisodeTitle(ep.getEpisodeTitle() == null ? "" : ep.getEpisodeTitle())
-                    .setVideoUrl(ep.getVideoUrl() == null ? "" : ep.getVideoUrl())
-                    .setSingleEpisodePrice(ep.getSingleEpisodePrice() == null ? "" : ep.getSingleEpisodePrice().toPlainString())
+                    .setTitle(ep.getTitle() == null ? "" : ep.getTitle())
+                    .setVideoAssetId(ep.getVideoAssetId() == null ? "" : ep.getVideoAssetId())
+                    .setPrice(ep.getPrice() == null ? "" : ep.getPrice().toPlainString())
                     .setDuration(ep.getDuration() == null ? 0 : ep.getDuration())
                     .build()
             ).collect(Collectors.toList()));
@@ -131,34 +132,32 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
             return dto;
         }
         MicroDramaItem base = detail.getBase();
-        dto.setDramaId(base.getDramaId() == 0 ? null : base.getDramaId());
+        dto.setId(base.getDramaId().isEmpty() ? null : base.getDramaId());
         dto.setTitle(base.getTitle());
         dto.setCoverUrl(base.getCoverUrl());
         dto.setDescription(base.getDescription());
         dto.setTotalEpisodes(base.getTotalEpisodes());
         dto.setStatus(base.getStatus());
         dto.setSort(base.getSort());
-        if (base.getSingleDramaPrice() != null && !base.getSingleDramaPrice().isEmpty()) {
+        if (base.getPrice() != null && !base.getPrice().isEmpty()) {
             try {
-                dto.setSingleDramaPrice(new BigDecimal(base.getSingleDramaPrice()));
+                dto.setPrice(new BigDecimal(base.getPrice()));
             } catch (NumberFormatException ignored) {
-                // ignore
             }
         }
 
         if (detail.getEpisodesCount() > 0) {
             List<DramaEpisodeDTO> eps = detail.getEpisodesList().stream().map(ep -> {
                 DramaEpisodeDTO e = new DramaEpisodeDTO();
-                e.setEpisodeId(ep.getEpisodeId() == 0 ? null : ep.getEpisodeId());
+                e.setId(ep.getEpisodeId().isEmpty() ? null : ep.getEpisodeId());
                 e.setEpisodeNum(ep.getEpisodeNum());
-                e.setEpisodeTitle(ep.getEpisodeTitle());
-                e.setVideoUrl(ep.getVideoUrl());
+                e.setTitle(ep.getTitle());
+                e.setVideoAssetId(ep.getVideoAssetId());
                 e.setDuration(ep.getDuration());
-                if (ep.getSingleEpisodePrice() != null && !ep.getSingleEpisodePrice().isEmpty()) {
+                if (ep.getPrice() != null && !ep.getPrice().isEmpty()) {
                     try {
-                        e.setSingleEpisodePrice(new BigDecimal(ep.getSingleEpisodePrice()));
+                        e.setPrice(new BigDecimal(ep.getPrice()));
                     } catch (NumberFormatException ignored) {
-                        // ignore
                     }
                 }
                 return e;
@@ -168,4 +167,3 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
         return dto;
     }
 }
-

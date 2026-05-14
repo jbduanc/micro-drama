@@ -1,30 +1,24 @@
 package com.series.admin.entity.sys;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 /**
- * 用户-角色 关联表实体
+ * 对应 platform_db.sys_user_role
  */
 @Data
 @TableName("sys_user_role")
 public class SysUserRole {
 
-    /**
-     * 主键ID
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.ASSIGN_UUID)
+    private String id;
 
-    /**
-     * 用户ID
-     */
-    private Long userId;
+    @TableField("user_id")
+    private String userId;
 
-    /**
-     * 角色ID
-     */
-    private Long roleId;
+    @TableField("role_id")
+    private String roleId;
 }

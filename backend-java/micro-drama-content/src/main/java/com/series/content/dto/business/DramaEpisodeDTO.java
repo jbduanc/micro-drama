@@ -9,11 +9,10 @@ import java.math.BigDecimal;
 public class DramaEpisodeDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private Integer episodeId;
+    private String id;
     private Integer episodeNum;
-    private String episodeTitle;
-    private String videoUrl;
-    private BigDecimal singleEpisodePrice;
+    private String title;
+    private String videoAssetId;
+    private BigDecimal price;
     private Integer duration;
 }
-

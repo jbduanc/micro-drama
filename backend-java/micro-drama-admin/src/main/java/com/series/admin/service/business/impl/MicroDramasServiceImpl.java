@@ -13,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -27,7 +28,6 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
 
     @Override
     public List<MicroDramas> list(MicroDramaDTO queryVO) {
-        // 简单示例：按创建时间倒序查询，可根据实际需求添加条件
         return this.lambdaQuery()
                 .orderByDesc(MicroDramas::getCreateTime)
                 .list();
@@ -36,10 +36,10 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveOrUpdateMicroDrama(MicroDramaDTO dto) {
-        // 1. 保存或更新短剧基本信息
         MicroDramas microDramas = new MicroDramas();
         BeanUtils.copyProperties(dto, microDramas);
-        if (dto.getDramaId() == null) {
+        if (!StringUtils.hasText(dto.getId())) {
+            microDramas.setId(null);
             microDramas.setCreateTime(new Date());
         } else {
             microDramas.setUpdateTime(new Date());
@@ -48,10 +48,8 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
         if (!dramaSaved) {
             return false;
         }
-        Long dramaId = microDramas.getDramaId();
+        String dramaId = microDramas.getId();
 
-        // 2. 处理剧集信息：先删除原有剧集，再插入新提交的剧集列表
-        //    （也可采用更精细的增量更新，此处简化处理）
         LambdaQueryWrapper<DramaEpisodes> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(DramaEpisodes::getDramaId, dramaId);
         dramaEpisodesMapper.delete(deleteWrapper);
@@ -60,17 +58,18 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
             List<DramaEpisodes> episodesList = dto.getEpisodes().stream().map(epDto -> {
                 DramaEpisodes ep = new DramaEpisodes();
                 BeanUtils.copyProperties(epDto, ep);
+                if (!StringUtils.hasText(epDto.getId())) {
+                    ep.setId(null);
+                }
                 ep.setDramaId(dramaId);
                 ep.setCreateTime(new Date());
                 return ep;
             }).collect(Collectors.toList());
-            // 批量插入剧集
             for (DramaEpisodes episode : episodesList) {
                 dramaEpisodesMapper.insert(episode);
             }
         }
 
-        // 3. 更新短剧的总集数字段（保持一致性）
         int episodeCount = dto.getEpisodes() == null ? 0 : dto.getEpisodes().size();
         microDramas.setTotalEpisodes(episodeCount);
         this.updateById(microDramas);
@@ -79,16 +78,14 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
     }
 
     @Override
-    public MicroDramaDTO getMicroDramaDetailById(Integer dramaId) {
+    public MicroDramaDTO getMicroDramaDetailById(String dramaId) {
         MicroDramaDTO dto = new MicroDramaDTO();
-        // 1. 查询短剧基本信息
         MicroDramas microDramas = this.getById(dramaId);
         if (microDramas == null) {
             return null;
         }
         BeanUtils.copyProperties(microDramas, dto);
 
-        // 2. 查询关联剧集列表
         LambdaQueryWrapper<DramaEpisodes> episodeWrapper = new LambdaQueryWrapper<>();
         episodeWrapper.eq(DramaEpisodes::getDramaId, dramaId)
                 .orderByAsc(DramaEpisodes::getEpisodeNum);
@@ -105,12 +102,10 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean removeMicroDrama(Integer dramaId) {
-        // 先删除关联剧集
+    public boolean removeMicroDrama(String dramaId) {
         LambdaQueryWrapper<DramaEpisodes> episodeWrapper = new LambdaQueryWrapper<>();
         episodeWrapper.eq(DramaEpisodes::getDramaId, dramaId);
         dramaEpisodesMapper.delete(episodeWrapper);
-        // 再删除短剧
         return this.removeById(dramaId);
     }
 }

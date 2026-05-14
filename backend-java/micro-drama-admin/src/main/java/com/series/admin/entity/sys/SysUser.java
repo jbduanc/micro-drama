@@ -1,20 +1,17 @@
 package com.series.admin.entity.sys;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
-import java.io.Serializable;
 
 /**
- * <p>
- * 
- * </p>
- *
- * @author djbo
- * @since 2026-04-13
+ * 对应 platform_db.sys_user
  */
 @Data
 @TableName("sys_user")
@@ -22,8 +19,10 @@ public class SysUser extends Model<SysUser> {
 
     private static final long serialVersionUID = 1L;
 
-    private Long id;
+    @TableId(type = IdType.ASSIGN_UUID)
+    private String id;
 
+    @TableField("google_email")
     private String googleEmail;
 
     private String nickname;
@@ -32,9 +31,11 @@ public class SysUser extends Model<SysUser> {
 
     private Integer status;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone="GMT+8")
+    @TableField("created_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone="GMT+8")
+    @TableField("updated_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
 }

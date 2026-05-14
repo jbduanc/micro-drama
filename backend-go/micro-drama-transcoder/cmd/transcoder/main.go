@@ -18,10 +18,10 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
-	// TODO: GET /playback/video/play
+	// TODO: GET /transcoder/video/play
 	// - middleware: auth/ratelimit
 	// - service: entitlement check + sign m3u8 url
-	r.GET("/playback/video/play", func(c *gin.Context) {
+	r.GET("/transcoder/video/play", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"videoId":  c.Query("videoId"),
 			"playUrl":  "TODO",
@@ -32,7 +32,6 @@ func main() {
 	})
 
 	addr := ":8080"
-	logger.Info("playback listening", zap.String("addr", addr))
+	logger.Info("transcoder listening", zap.String("addr", addr))
 	_ = r.Run(addr)
 }
-

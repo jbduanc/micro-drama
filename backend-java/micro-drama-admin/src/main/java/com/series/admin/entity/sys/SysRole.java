@@ -1,6 +1,7 @@
 package com.series.admin.entity.sys;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -8,35 +9,23 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 系统角色表实体
+ * 对应 platform_db.sys_role
  */
 @Data
 @TableName("sys_role")
 public class SysRole {
 
-    /**
-     * 主键ID
-     */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+    @TableId(type = IdType.ASSIGN_UUID)
+    private String id;
 
-    /**
-     * 角色名称(唯一非空)
-     */
+    @TableField("role_name")
     private String roleName;
 
-    /**
-     * 角色编码(唯一非空)
-     */
+    @TableField("role_code")
     private String roleCode;
 
-    /**
-     * 备注
-     */
     private String remark;
 
-    /**
-     * 创建时间
-     */
+    @TableField("created_at")
     private LocalDateTime createTime;
 }

@@ -47,6 +47,6 @@
 - `POST /v1/orders` body: `{"id":"order-1"}`
 - `POST /v1/tx/raw` body: `{"signedHex":"0x..."}`（待实现发链）
 
-## micro-drama-playback
+## micro-drama-transcoder
 
-见 `micro-drama-playback/`（Gin 骨架）。
+见 `micro-drama-transcoder/`（Gin 骨架；与 `micro-drama-video` Kafka Worker 分工：本服务偏 HTTP 侧编排/签 URL 等）。

@@ -21,15 +21,47 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type EpisodeFormState = {
   episodeNum: string
-  episodeTitle: string
+  title: string
   duration: string
-  singleEpisodePrice: string
-  videoUrl: string
+  price: string
+  videoAssetId: string
 }
 
 function toNumberOrUndefined(value: string) {
   const n = Number(value)
   return Number.isFinite(n) ? n : undefined
+}
+
+function parseEpisodeFromRaw(raw: Record<string, unknown>): DramaEpisode {
+  const id =
+    raw.id != null && String(raw.id).trim() !== "" ? String(raw.id).trim() : undefined
+
+  const title = String(raw.title ?? raw.episodeTitle ?? "")
+  const videoAssetIdRaw = raw.videoAssetId ?? raw.videoUrl
+  const videoAssetId =
+    videoAssetIdRaw != null && String(videoAssetIdRaw).trim() !== ""
+      ? String(videoAssetIdRaw).trim()
+      : undefined
+
+  const priceRaw = raw.price ?? raw.singleEpisodePrice
+  const price =
+    priceRaw != null && priceRaw !== "" && Number.isFinite(Number(priceRaw))
+      ? Number(priceRaw)
+      : undefined
+
+  const duration =
+    raw.duration != null && raw.duration !== "" && Number.isFinite(Number(raw.duration))
+      ? Number(raw.duration)
+      : undefined
+
+  return {
+    ...(id ? { id } : {}),
+    episodeNum: Number(raw.episodeNum ?? 0) || 0,
+    title,
+    videoAssetId,
+    duration,
+    price,
+  }
 }
 
 export default function DramaEditPage() {
@@ -44,24 +76,22 @@ export default function DramaEditPage() {
   const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
-    dramaId: undefined as MicroDramaDTO["dramaId"],
+    id: undefined as string | undefined,
     title: "",
     coverUrl: "",
     description: "",
     totalEpisodes: "",
-    singleDramaPrice: "",
+    price: "",
     status: "1",
     sort: "",
   })
 
   const [episodes, setEpisodes] = useState<DramaEpisode[]>([])
 
-  // episodes pagination
   const [epPage, setEpPage] = useState(1)
   const epSize = 12
 
   const epTotalPages = useMemo(
-    // 额外预留 1 个“新增剧集”块：若当前页已满，则“+块”会出现在下一页
     () => Math.max(1, Math.ceil((episodes.length + 1) / epSize)),
     [episodes.length],
   )
@@ -73,15 +103,14 @@ export default function DramaEditPage() {
 
   const shouldShowPlusCard = pageEpisodes.length < epSize
 
-  // episode dialog
   const [episodeDialogOpen, setEpisodeDialogOpen] = useState(false)
   const [editingEpisodeIndex, setEditingEpisodeIndex] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<EpisodeFormState>({
     episodeNum: "",
-    episodeTitle: "",
+    title: "",
     duration: "",
-    singleEpisodePrice: "",
-    videoUrl: "",
+    price: "",
+    videoAssetId: "",
   })
 
   async function fetchDetail(dramaId: string) {
@@ -92,38 +121,17 @@ export default function DramaEditPage() {
       if (!data) throw new Error("empty data")
 
       setForm({
-        dramaId: data.dramaId,
+        id: data.id,
         title: data.title ?? "",
         coverUrl: data.coverUrl ?? "",
         description: data.description ?? "",
         totalEpisodes: data.totalEpisodes == null ? "" : String(data.totalEpisodes),
-        singleDramaPrice: data.singleDramaPrice == null ? "" : String(data.singleDramaPrice),
+        price: data.price == null ? "" : String(data.price),
         status: data.status == null ? "1" : String(data.status),
         sort: data.sort == null ? "" : String(data.sort),
       })
       const rawEpisodes = Array.isArray(data.episodes) ? data.episodes : []
-      setEpisodes(
-        rawEpisodes.map((raw) => {
-          const r = raw as Record<string, unknown>
-          const eid = r.episodeId
-          const epIdNum =
-            eid != null && eid !== "" && Number.isFinite(Number(eid)) ? Number(eid) : undefined
-          return {
-            episodeId: epIdNum != null && epIdNum > 0 ? epIdNum : undefined,
-            episodeNum: Number(r.episodeNum ?? 0) || 0,
-            episodeTitle: String(r.episodeTitle ?? ""),
-            videoUrl: r.videoUrl ? String(r.videoUrl) : undefined,
-            duration:
-              r.duration != null && r.duration !== ""
-                ? Number(r.duration)
-                : undefined,
-            singleEpisodePrice:
-              r.singleEpisodePrice != null && r.singleEpisodePrice !== ""
-                ? Number(r.singleEpisodePrice)
-                : undefined,
-          }
-        }),
-      )
+      setEpisodes(rawEpisodes.map((raw) => parseEpisodeFromRaw(raw as Record<string, unknown>)))
     } catch (e) {
       console.error(e)
       toast.error("加载短剧详情失败")
@@ -138,7 +146,7 @@ export default function DramaEditPage() {
     } else {
       setForm((f) => ({
         ...f,
-        dramaId: undefined,
+        id: undefined,
       }))
       setEpisodes([])
     }
@@ -146,7 +154,6 @@ export default function DramaEditPage() {
   }, [dramaIdParam])
 
   useEffect(() => {
-    // keep episodes page valid when deleting
     if (epPage > epTotalPages) setEpPage(epTotalPages)
   }, [epPage, epTotalPages])
 
@@ -154,10 +161,10 @@ export default function DramaEditPage() {
     setEditingEpisodeIndex(null)
     setEpisodeForm({
       episodeNum: String(episodes.length + 1),
-      episodeTitle: "",
+      title: "",
       duration: "",
-      singleEpisodePrice: "",
-      videoUrl: "",
+      price: "",
+      videoAssetId: "",
     })
     setEpisodeDialogOpen(true)
   }
@@ -168,10 +175,10 @@ export default function DramaEditPage() {
     setEditingEpisodeIndex(indexInAll)
     setEpisodeForm({
       episodeNum: String(ep.episodeNum ?? ""),
-      episodeTitle: ep.episodeTitle ?? "",
+      title: ep.title ?? "",
       duration: ep.duration == null ? "" : String(ep.duration),
-      singleEpisodePrice: ep.singleEpisodePrice == null ? "" : String(ep.singleEpisodePrice),
-      videoUrl: ep.videoUrl ?? "",
+      price: ep.price == null ? "" : String(ep.price),
+      videoAssetId: ep.videoAssetId ?? "",
     })
     setEpisodeDialogOpen(true)
   }
@@ -182,20 +189,20 @@ export default function DramaEditPage() {
       toast.error("请输入正确的集数（正整数）")
       return
     }
-    const episodeTitle = episodeForm.episodeTitle.trim()
-    if (!episodeTitle) {
+    const title = episodeForm.title.trim()
+    if (!title) {
       toast.error("请输入剧集标题")
       return
     }
 
     const prevEp = editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
     const next: DramaEpisode = {
-      ...(prevEp?.episodeId != null && prevEp.episodeId > 0 ? { episodeId: prevEp.episodeId } : {}),
+      ...(prevEp?.id ? { id: prevEp.id } : {}),
       episodeNum,
-      episodeTitle,
+      title,
       duration: toNumberOrUndefined(episodeForm.duration),
-      singleEpisodePrice: toNumberOrUndefined(episodeForm.singleEpisodePrice),
-      videoUrl: episodeForm.videoUrl.trim() ? episodeForm.videoUrl.trim() : undefined,
+      price: toNumberOrUndefined(episodeForm.price),
+      videoAssetId: episodeForm.videoAssetId.trim() ? episodeForm.videoAssetId.trim() : undefined,
     }
 
     setEpisodes((prev) => {
@@ -205,7 +212,6 @@ export default function DramaEditPage() {
       } else {
         cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
       }
-      // keep stable order by episodeNum then sort
       cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
       return cloned
     })
@@ -238,7 +244,7 @@ export default function DramaEditPage() {
       return
     }
 
-    const priceNumber = form.singleDramaPrice.trim() ? Number(form.singleDramaPrice) : undefined
+    const priceNumber = form.price.trim() ? Number(form.price) : undefined
     if (priceNumber != null && !Number.isFinite(priceNumber)) {
       toast.error("请输入正确的单剧价格")
       setActiveTab("base")
@@ -254,32 +260,28 @@ export default function DramaEditPage() {
 
     setSaving(true)
     try {
-      let dramaIdNum: number | undefined
-      if (!isCreate) {
-        dramaIdNum = Number(form.dramaId ?? dramaIdParam)
-        if (!Number.isFinite(dramaIdNum) || !Number.isInteger(dramaIdNum) || dramaIdNum <= 0) {
-          toast.error("短剧 ID 无效")
-          return
-        }
+      const dramaUuid = String(form.id ?? dramaIdParam ?? "").trim()
+      if (!isCreate && !dramaUuid) {
+        toast.error("短剧 ID 无效")
+        return
       }
 
       const payload: MicroDramaDTO = {
-        dramaId: dramaIdNum,
+        ...(!isCreate ? { id: dramaUuid } : {}),
         title,
         coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
         description: form.description.trim() ? form.description.trim() : undefined,
         totalEpisodes: totalEpisodesNumber ?? episodes.length,
-        singleDramaPrice: priceNumber,
+        price: priceNumber,
         status: Number(form.status) as 0 | 1,
         sort: sortNumber,
         episodes: episodes.map((ep) => ({
-          episodeId:
-            ep.episodeId != null && ep.episodeId > 0 ? ep.episodeId : undefined,
+          ...(ep.id ? { id: ep.id } : {}),
           episodeNum: ep.episodeNum,
-          episodeTitle: ep.episodeTitle,
-          videoUrl: ep.videoUrl,
+          title: ep.title,
+          videoAssetId: ep.videoAssetId,
           duration: ep.duration,
-          singleEpisodePrice: ep.singleEpisodePrice,
+          price: ep.price,
         })),
       }
 
@@ -296,7 +298,7 @@ export default function DramaEditPage() {
     }
   }
 
-  const headerTitle = isCreate ? "新增短剧" : `编辑短剧 #${dramaIdParam}`
+  const headerTitle = isCreate ? "新增短剧" : `编辑短剧 ${dramaIdParam}`
 
   return (
     <div className="space-y-6">
@@ -376,15 +378,15 @@ export default function DramaEditPage() {
                       />
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="singleDramaPrice">单剧订阅价格（TON）</Label>
+                      <Label htmlFor="price">单剧订阅价格（TON）</Label>
                       <Input
-                        id="singleDramaPrice"
+                        id="price"
                         type="number"
                         min={0}
                         step="0.01"
                         placeholder="例如：0.99"
-                        value={form.singleDramaPrice}
-                        onChange={(e) => setForm((f) => ({ ...f, singleDramaPrice: e.target.value }))}
+                        value={form.price}
+                        onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -436,7 +438,7 @@ export default function DramaEditPage() {
                   const globalIndex = (epPage - 1) * epSize + idx
                   return (
                     <div
-                      key={`${ep.episodeId ?? "new"}-${ep.episodeNum}-${ep.episodeTitle}`}
+                      key={`${ep.id ?? "new"}-${ep.episodeNum}-${ep.title}`}
                       className="relative overflow-hidden rounded-xl border bg-card p-3 text-card-foreground shadow-sm transition hover:shadow-md"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -475,12 +477,12 @@ export default function DramaEditPage() {
                       </div>
 
                       <div className="mt-6 space-y-1">
-                        <div className="truncate text-sm font-medium" title={ep.episodeTitle}>
-                          {ep.episodeTitle}
+                        <div className="truncate text-sm font-medium" title={ep.title}>
+                          {ep.title}
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <div>时长：{ep.duration ?? "-"}s</div>
-                          <div>价格：{ep.singleEpisodePrice ?? "-"} TON</div>
+                          <div>价格：{ep.price ?? "-"} TON</div>
                         </div>
                       </div>
                     </div>
@@ -543,7 +545,7 @@ export default function DramaEditPage() {
           <DialogHeader>
             <DialogTitle>{editingEpisodeIndex == null ? "新增剧集" : "编辑剧集"}</DialogTitle>
             <DialogDescription>
-              字段与后端一致：集数、标题、时长（秒）、单集价格、视频地址；保存短剧时一并提交。
+              与 content_db.episode 对齐：集数、标题、时长（秒）、价格、video_asset_id（UUID，可空）。
             </DialogDescription>
           </DialogHeader>
 
@@ -574,36 +576,36 @@ export default function DramaEditPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="episodeTitle">剧集标题</Label>
+              <Label htmlFor="epTitle">剧集标题</Label>
               <Input
-                id="episodeTitle"
+                id="epTitle"
                 placeholder="例如：第一集"
-                value={episodeForm.episodeTitle}
-                onChange={(e) => setEpisodeForm((f) => ({ ...f, episodeTitle: e.target.value }))}
+                value={episodeForm.title}
+                onChange={(e) => setEpisodeForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="singleEpisodePrice">价格（TON）</Label>
+                <Label htmlFor="epPrice">价格（TON）</Label>
                 <Input
-                  id="singleEpisodePrice"
+                  id="epPrice"
                   type="number"
                   min={0}
                   step="0.01"
-                  value={episodeForm.singleEpisodePrice}
+                  value={episodeForm.price}
                   onChange={(e) =>
-                    setEpisodeForm((f) => ({ ...f, singleEpisodePrice: e.target.value }))
+                    setEpisodeForm((f) => ({ ...f, price: e.target.value }))
                   }
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="videoUrl">视频地址（预留）</Label>
+                <Label htmlFor="videoAssetId">视频资产 ID（video_asset.id）</Label>
                 <Input
-                  id="videoUrl"
-                  placeholder="https://..."
-                  value={episodeForm.videoUrl}
-                  onChange={(e) => setEpisodeForm((f) => ({ ...f, videoUrl: e.target.value }))}
+                  id="videoAssetId"
+                  placeholder="UUID，可空"
+                  value={episodeForm.videoAssetId}
+                  onChange={(e) => setEpisodeForm((f) => ({ ...f, videoAssetId: e.target.value }))}
                 />
               </div>
             </div>
@@ -620,4 +622,3 @@ export default function DramaEditPage() {
     </div>
   )
 }
-
