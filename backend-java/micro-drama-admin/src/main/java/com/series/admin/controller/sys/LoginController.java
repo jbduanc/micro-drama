@@ -27,6 +27,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -34,6 +35,19 @@ import java.util.concurrent.TimeUnit;
 public class LoginController {
 
     private static final Logger log = LoggerFactory.getLogger(LoginController.class);
+
+    /** Google 可能不返回 name；DB 若 NOT NULL 会插入失败 */
+    private static String emptyIfNull(String s) {
+        return s == null ? "" : s;
+    }
+
+    /** 头像 URL 可能很长，避免超出 varchar 上限 */
+    private static String limitLen(String s, int max) {
+        if (s.length() <= max) {
+            return s;
+        }
+        return s.substring(0, max);
+    }
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -142,14 +156,17 @@ public class LoginController {
 
         if (user == null) {
             user = new SysUser();
+            user.setId(UUID.randomUUID());
             user.setGoogleEmail(email);
-            user.setNickname(name);
-            user.setAvatar(avatar);
+            user.setNickname(emptyIfNull(name));
+            user.setAvatar(limitLen(emptyIfNull(avatar), 1024));
             user.setStatus(1);
             user.setCreateTime(new Date());
             user.setUpdateTime(new Date());
             sysUserService.save(user);
         } else {
+            user.setNickname(emptyIfNull(name));
+            user.setAvatar(limitLen(emptyIfNull(avatar), 1024));
             user.setUpdateTime(new Date());
             sysUserService.updateById(user);
         }
@@ -194,7 +211,7 @@ public class LoginController {
 
         // 2. 封装返回DTO
         UserInfoDTO userInfo = new UserInfoDTO();
-        userInfo.setId(sysUser.getId());
+        userInfo.setId(sysUser.getId() != null ? sysUser.getId().toString() : null);
         userInfo.setNickname(sysUser.getNickname());
         userInfo.setGoogleEmail(sysUser.getGoogleEmail());
         userInfo.setAvatar(sysUser.getAvatar());

@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * 对应 platform_db.sys_user
@@ -21,8 +22,9 @@ public class SysUser extends Model<SysUser> {
 
     private static final long serialVersionUID = 1L;
 
-    @TableId(type = IdType.ASSIGN_UUID)
-    private String id;
+    /** 与 PostgreSQL UUID 列一致；勿用 ASSIGN_UUID 生成 String 绑定 */
+    @TableId(type = IdType.INPUT)
+    private UUID id;
 
     @TableField("google_email")
     private String googleEmail;

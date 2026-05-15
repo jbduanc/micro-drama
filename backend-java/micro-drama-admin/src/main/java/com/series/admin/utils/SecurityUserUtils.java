@@ -70,7 +70,7 @@ public class SecurityUserUtils {
      */
     public static String getCurrentUserId() {
         SysUser user = getCurrentUser();
-        return user == null ? null : user.getId();
+        return user == null ? null : user.getId().toString();
     }
 
     /**
