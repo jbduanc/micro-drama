@@ -6,26 +6,28 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.series.common.typehandler.UuidStringTypeHandler;
+import com.series.common.typehandler.UuidTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * 对应 content_db.drama
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("drama")
+@TableName(value = "drama", autoResultMap = true)
 public class MicroDramas extends Model<MicroDramas> implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    @TableId(type = IdType.ASSIGN_UUID)
-    @TableField(value = "id", typeHandler = UuidStringTypeHandler.class)
-    private String id;
+    /** 与 PostgreSQL UUID 列一致；INPUT + 业务侧赋值，避免 ASSIGN_UUID 回填 String 导致类型错误 */
+    @TableId(value = "id", type = IdType.INPUT)
+    @TableField(value = "id", typeHandler = UuidTypeHandler.class)
+    private UUID id;
 
     private String title;
 

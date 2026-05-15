@@ -2,12 +2,15 @@ package com.series.common.typehandler;
 
 import java.util.UUID;
 
-final class UuidTypeHandlerSupport {
+/**
+ * UUID 字符串解析（含 MyBatis-Plus 32 位无连字符格式）。
+ */
+public final class UuidTypeHandlerSupport {
 
     private UuidTypeHandlerSupport() {
     }
 
-    static UUID toUuid(String value) {
+    public static UUID toUuid(String value) {
         if (value == null) {
             return null;
         }
@@ -26,7 +29,7 @@ final class UuidTypeHandlerSupport {
         return UUID.fromString(trimmed);
     }
 
-    static String toCanonicalString(Object val) {
+    public static String toCanonicalString(Object val) {
         if (val == null) {
             return null;
         }
