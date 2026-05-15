@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +26,14 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
 
     @Resource
     private DramaEpisodesMapper dramaEpisodesMapper;
+
+    private static UUID parseUuid(String value) {
+        return StringUtils.hasText(value) ? UUID.fromString(value.trim()) : null;
+    }
+
+    private static String uuidToString(UUID value) {
+        return value == null ? null : value.toString();
+    }
 
     @Override
     public List<MicroDramas> list(MicroDramaDTO queryVO) {
@@ -37,18 +46,19 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
     @Transactional(rollbackFor = Exception.class)
     public boolean saveOrUpdateMicroDrama(MicroDramaDTO dto) {
         MicroDramas microDramas = new MicroDramas();
-        BeanUtils.copyProperties(dto, microDramas);
+        BeanUtils.copyProperties(dto, microDramas, "id");
         if (!StringUtils.hasText(dto.getId())) {
             microDramas.setId(null);
             microDramas.setCreateTime(new Date());
         } else {
+            microDramas.setId(parseUuid(dto.getId()));
             microDramas.setUpdateTime(new Date());
         }
         boolean dramaSaved = this.saveOrUpdate(microDramas);
         if (!dramaSaved) {
             return false;
         }
-        String dramaId = microDramas.getId();
+        UUID dramaId = microDramas.getId();
 
         LambdaQueryWrapper<DramaEpisodes> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(DramaEpisodes::getDramaId, dramaId);
@@ -57,10 +67,13 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
         if (!CollectionUtils.isEmpty(dto.getEpisodes())) {
             List<DramaEpisodes> episodesList = dto.getEpisodes().stream().map(epDto -> {
                 DramaEpisodes ep = new DramaEpisodes();
-                BeanUtils.copyProperties(epDto, ep);
+                BeanUtils.copyProperties(epDto, ep, "id", "videoAssetId");
                 if (!StringUtils.hasText(epDto.getId())) {
                     ep.setId(null);
+                } else {
+                    ep.setId(parseUuid(epDto.getId()));
                 }
+                ep.setVideoAssetId(parseUuid(epDto.getVideoAssetId()));
                 ep.setDramaId(dramaId);
                 ep.setCreateTime(new Date());
                 return ep;
@@ -79,21 +92,28 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
 
     @Override
     public MicroDramaDTO getMicroDramaDetailById(String dramaId) {
+        UUID id = parseUuid(dramaId);
+        if (id == null) {
+            return null;
+        }
         MicroDramaDTO dto = new MicroDramaDTO();
-        MicroDramas microDramas = this.getById(dramaId);
+        MicroDramas microDramas = this.getById(id);
         if (microDramas == null) {
             return null;
         }
-        BeanUtils.copyProperties(microDramas, dto);
+        BeanUtils.copyProperties(microDramas, dto, "id");
+        dto.setId(uuidToString(microDramas.getId()));
 
         LambdaQueryWrapper<DramaEpisodes> episodeWrapper = new LambdaQueryWrapper<>();
-        episodeWrapper.eq(DramaEpisodes::getDramaId, dramaId)
+        episodeWrapper.eq(DramaEpisodes::getDramaId, id)
                 .orderByAsc(DramaEpisodes::getEpisodeNum);
         List<DramaEpisodes> episodes = dramaEpisodesMapper.selectList(episodeWrapper);
 
         List<DramaEpisodeDTO> episodeDTOList = episodes.stream().map(ep -> {
             DramaEpisodeDTO epDto = new DramaEpisodeDTO();
-            BeanUtils.copyProperties(ep, epDto);
+            BeanUtils.copyProperties(ep, epDto, "id", "videoAssetId");
+            epDto.setId(uuidToString(ep.getId()));
+            epDto.setVideoAssetId(uuidToString(ep.getVideoAssetId()));
             return epDto;
         }).collect(Collectors.toList());
         dto.setEpisodes(episodeDTOList);
@@ -103,9 +123,13 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean removeMicroDrama(String dramaId) {
+        UUID id = parseUuid(dramaId);
+        if (id == null) {
+            return false;
+        }
         LambdaQueryWrapper<DramaEpisodes> episodeWrapper = new LambdaQueryWrapper<>();
-        episodeWrapper.eq(DramaEpisodes::getDramaId, dramaId);
+        episodeWrapper.eq(DramaEpisodes::getDramaId, id);
         dramaEpisodesMapper.delete(episodeWrapper);
-        return this.removeById(dramaId);
+        return this.removeById(id);
     }
 }

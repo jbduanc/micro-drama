@@ -6,7 +6,7 @@ spring:
 
 # PostgreSQL UUID 主键（如 sys_user.id）需 TypeHandler；与 SqlSessionFactoryBeanCustomizer 双保险
 mybatis-plus:
-  type-handlers-package: com.series.admin.typehandler
+  type-handlers-package: com.series.common.typehandler
 
 management:
   health:

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.series.admin.typehandler.UuidTypeHandler;
+import com.series.common.typehandler.UuidTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

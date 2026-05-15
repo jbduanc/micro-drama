@@ -1,4 +1,4 @@
-package com.series.admin.typehandler;
+package com.series.common.typehandler;
 
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
@@ -13,15 +13,15 @@ import java.sql.Types;
 import java.util.UUID;
 
 /**
- * PostgreSQL {@code uuid} 列 ↔ {@link UUID}；旧版 MyBatis 未内置该映射时会报
- * {@code Type handler was null on parameter mapping for property 'id'}。
+ * PostgreSQL {@code uuid} 列 ↔ {@link UUID}。
  */
 @MappedTypes(UUID.class)
 @MappedJdbcTypes(JdbcType.OTHER)
 public class UuidTypeHandler extends BaseTypeHandler<UUID> {
 
     @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, UUID parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i, UUID parameter, JdbcType jdbcType)
+            throws SQLException {
         ps.setObject(i, parameter, Types.OTHER);
     }
 

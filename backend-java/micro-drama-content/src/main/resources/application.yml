@@ -3,6 +3,10 @@ spring:
     name: micro-drama-content
   profiles:
     active: local
+
+# PostgreSQL UUID 列（drama.id、episode.id 等）需 TypeHandler
+mybatis-plus:
+  type-handlers-package: com.series.common.typehandler
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
