@@ -3,7 +3,6 @@ package com.series.admin.controller.business;
 import com.series.admin.grpc.ContentMicroDramasGrpcClient;
 import com.series.common.entity.Result;
 import com.series.common.entity.TablePageInfo;
-import lombok.var;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,8 +11,12 @@ import com.series.admin.dto.business.MicroDramaDTO;
 import com.series.admin.entity.business.MicroDramas;
 
 import com.series.common.grpc.content.v1.BoolResult;
+import com.series.common.grpc.content.v1.MicroDramaDetail;
+import com.series.common.grpc.content.v1.MicroDramaDetailResponse;
 import com.series.common.grpc.content.v1.MicroDramaIdRequest;
+import com.series.common.grpc.content.v1.MicroDramaItem;
 import com.series.common.grpc.content.v1.MicroDramaPageListRequest;
+import com.series.common.grpc.content.v1.MicroDramaPageListResponse;
 import com.series.common.grpc.content.v1.MicroDramaSaveOrUpdateRequest;
 
 import java.math.BigDecimal;
@@ -49,7 +52,7 @@ public class MicroDramasController {
                 .setPage(queryVO.getPage() == null ? 1 : queryVO.getPage())
                 .setSize(queryVO.getSize() == null ? 10 : queryVO.getSize())
                 .build();
-        var resp = contentGrpc().stub().pageList(req);
+        MicroDramaPageListResponse resp = contentGrpc().stub().pageList(req);
 
         TablePageInfo<MicroDramas> out = new TablePageInfo<>();
         out.setTotal(resp.getTotal());
@@ -75,7 +78,7 @@ public class MicroDramasController {
 
     @PostMapping("/saveOrUpdate")
     public Result<Boolean> saveOrUpdate(@RequestBody MicroDramaDTO dto) {
-        var base = com.series.common.grpc.content.v1.MicroDramaItem.newBuilder()
+        MicroDramaItem base = MicroDramaItem.newBuilder()
                 .setDramaId(grpcId(dto.getId()))
                 .setTitle(dto.getTitle() == null ? "" : dto.getTitle())
                 .setCoverUrl(dto.getCoverUrl() == null ? "" : dto.getCoverUrl())
@@ -85,8 +88,7 @@ public class MicroDramasController {
                 .setStatus(dto.getStatus() == null ? 0 : dto.getStatus())
                 .setSort(dto.getSort() == null ? 0 : dto.getSort())
                 .build();
-        com.series.common.grpc.content.v1.MicroDramaDetail.Builder detailBuilder =
-                com.series.common.grpc.content.v1.MicroDramaDetail.newBuilder().setBase(base);
+        MicroDramaDetail.Builder detailBuilder = MicroDramaDetail.newBuilder().setBase(base);
         if (dto.getEpisodes() != null) {
             for (DramaEpisodeDTO ep : dto.getEpisodes()) {
                 detailBuilder.addEpisodes(com.series.common.grpc.content.v1.Episode.newBuilder()
@@ -99,20 +101,21 @@ public class MicroDramasController {
                         .build());
             }
         }
-        var detail = detailBuilder.build();
+        MicroDramaDetail detail = detailBuilder.build();
         MicroDramaSaveOrUpdateRequest req = MicroDramaSaveOrUpdateRequest.newBuilder().setDrama(detail).build();
-        var resp = contentGrpc().stub().saveOrUpdate(req);
-        return Result.ok(resp.getOk());
+        BoolResult saveResp = contentGrpc().stub().saveOrUpdate(req);
+        return Result.ok(saveResp.getOk());
     }
 
     @GetMapping("/detail/{dramaId}")
     public Result<MicroDramaDTO> getDetail(@PathVariable String dramaId) {
-        var resp = contentGrpc().stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
+        MicroDramaDetailResponse resp =
+                contentGrpc().stub().detail(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
         if (!resp.hasDrama() || !resp.getDrama().hasBase()) {
             return Result.error("短剧不存在");
         }
-        var drama = resp.getDrama();
-        var base = drama.getBase();
+        MicroDramaDetail dramaDetail = resp.getDrama();
+        MicroDramaItem base = dramaDetail.getBase();
         MicroDramaDTO out = new MicroDramaDTO();
         out.setId(base.getDramaId().isEmpty() ? null : base.getDramaId());
         out.setTitle(base.getTitle());
@@ -127,9 +130,9 @@ public class MicroDramasController {
             } catch (NumberFormatException ignored) {
             }
         }
-        if (drama.getEpisodesCount() > 0) {
+        if (dramaDetail.getEpisodesCount() > 0) {
             List<DramaEpisodeDTO> eps = new ArrayList<>();
-            drama.getEpisodesList().forEach(ep -> {
+            dramaDetail.getEpisodesList().forEach(ep -> {
                 DramaEpisodeDTO e = new DramaEpisodeDTO();
                 e.setId(ep.getEpisodeId().isEmpty() ? null : ep.getEpisodeId());
                 e.setEpisodeNum(ep.getEpisodeNum());
@@ -151,8 +154,8 @@ public class MicroDramasController {
 
     @PostMapping("/delete/{dramaId}")
     public Result<Boolean> delete(@PathVariable String dramaId) {
-        BoolResult resp =
+        BoolResult delResp =
                 contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
-        return Result.ok(resp.getOk());
+        return Result.ok(delResp.getOk());
     }
 }

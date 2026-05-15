@@ -204,7 +204,10 @@ jobs:
           XML
 
       - name: Maven 部署 — micro-drama-admin
-        run: mvn -f backend-java/micro-drama-admin/pom.xml clean deploy -DskipTests
+        run: |
+          set -e
+          mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
+          mvn -f backend-java/micro-drama-admin/pom.xml clean deploy -DskipTests
 
       - name: 配置 Docker 私服
         run: |
@@ -294,7 +297,10 @@ jobs:
           XML
 
       - name: Maven 部署 — micro-drama-user
-        run: mvn -f backend-java/micro-drama-user/pom.xml clean deploy -DskipTests
+        run: |
+          set -e
+          mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
+          mvn -f backend-java/micro-drama-user/pom.xml clean deploy -DskipTests
 
       - name: 配置 Docker 私服
         run: |

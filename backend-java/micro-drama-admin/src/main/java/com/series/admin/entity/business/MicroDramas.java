@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -16,6 +17,7 @@ import java.util.Date;
  * 对应 content_db.drama
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
 @TableName("drama")
 public class MicroDramas extends Model<MicroDramas> {
 

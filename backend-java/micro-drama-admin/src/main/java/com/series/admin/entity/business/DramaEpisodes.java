@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -15,6 +16,7 @@ import java.util.Date;
  * 对应 content_db.episode
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
 @TableName("episode")
 public class DramaEpisodes extends Model<DramaEpisodes> {
 
