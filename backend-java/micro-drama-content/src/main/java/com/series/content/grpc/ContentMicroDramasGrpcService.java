@@ -20,7 +20,6 @@ import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @GrpcService
@@ -33,10 +32,6 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
 
     private static String grpcId(String id) {
         return id == null ? "" : id;
-    }
-
-    private static String grpcId(UUID id) {
-        return id == null ? "" : id.toString();
     }
 
     @Override

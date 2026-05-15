@@ -1,5 +1,6 @@
 package com.series.content.config;
 
+import com.series.common.typehandler.UuidStringTypeHandler;
 import com.series.common.typehandler.UuidTypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 import org.mybatis.spring.boot.autoconfigure.ConfigurationCustomizer;
@@ -14,6 +15,7 @@ public class MybatisUuidTypeHandlerConfiguration {
         return configuration -> {
             TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
             registry.register(UuidTypeHandler.class);
+            registry.register(UuidStringTypeHandler.class);
         };
     }
 }

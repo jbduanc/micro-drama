@@ -47,6 +47,10 @@ public class UuidTypeHandler extends BaseTypeHandler<UUID> {
         if (val instanceof UUID) {
             return (UUID) val;
         }
-        return UUID.fromString(val.toString());
+        try {
+            return UuidTypeHandlerSupport.toUuid(val.toString());
+        } catch (IllegalArgumentException e) {
+            throw new SQLException("Invalid UUID value: " + val, e);
+        }
     }
 }

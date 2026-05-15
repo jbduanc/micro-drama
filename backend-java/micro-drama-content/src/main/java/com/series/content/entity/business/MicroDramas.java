@@ -6,14 +6,13 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.series.common.typehandler.UuidTypeHandler;
+import com.series.common.typehandler.UuidStringTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.UUID;
 
 /**
  * 对应 content_db.drama
@@ -25,8 +24,8 @@ public class MicroDramas extends Model<MicroDramas> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @TableId(type = IdType.ASSIGN_UUID)
-    @TableField(value = "id", typeHandler = UuidTypeHandler.class)
-    private UUID id;
+    @TableField(value = "id", typeHandler = UuidStringTypeHandler.class)
+    private String id;
 
     private String title;
 
