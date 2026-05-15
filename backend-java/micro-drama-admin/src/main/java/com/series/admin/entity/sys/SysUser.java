@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.Date;
 
@@ -14,6 +15,7 @@ import java.util.Date;
  * 对应 platform_db.sys_user
  */
 @Data
+@EqualsAndHashCode(callSuper = false)
 @TableName("sys_user")
 public class SysUser extends Model<SysUser> {
 

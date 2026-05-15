@@ -11,6 +11,7 @@ import com.series.admin.dto.business.DramaEpisodeDTO;
 import com.series.admin.dto.business.MicroDramaDTO;
 import com.series.admin.entity.business.MicroDramas;
 
+import com.series.common.grpc.content.v1.BoolResult;
 import com.series.common.grpc.content.v1.MicroDramaIdRequest;
 import com.series.common.grpc.content.v1.MicroDramaPageListRequest;
 import com.series.common.grpc.content.v1.MicroDramaSaveOrUpdateRequest;
@@ -150,7 +151,8 @@ public class MicroDramasController {
 
     @PostMapping("/delete/{dramaId}")
     public Result<Boolean> delete(@PathVariable String dramaId) {
-        var resp = contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
+        BoolResult resp =
+                contentGrpc().stub().delete(MicroDramaIdRequest.newBuilder().setDramaId(grpcId(dramaId)).build());
         return Result.ok(resp.getOk());
     }
 }

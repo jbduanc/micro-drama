@@ -39,12 +39,17 @@ on:
         description: 镜像 tag
         type: string
         default: "latest"
+      skip_deploy_webhook:
+        description: 跳过部署 Webhook（远端 deploy 异常时可勾选；镜像仍会构建并推送）
+        type: boolean
+        default: false
 
 env:
   # 这些请配置在 GitHub Repository Variables（Settings → Secrets and variables → Actions → Variables）
   # - NEXUS_DOCKER_HOST: 例如 nexus-docker.47.84.207.243.nip.io
   # - NEXUS_URL: 例如 http://nexus.47.84.207.243.nip.io
   # - DEPLOY_WEBHOOK_URL: 例如 http://deploy.47.84.207.243.nip.io/hooks/deploy
+  # Webhook 若返回 5xx，多为部署端未注册 JSON 里 services 与 DEPLOY_SERVICE 一致、或 deploy 服务自身异常（与 curl 无关）。
   NEXUS_DOCKER_HOST: ${{ vars.NEXUS_DOCKER_HOST }}
   NEXUS_URL: ${{ vars.NEXUS_URL }}
   DEPLOY_WEBHOOK_URL: ${{ vars.DEPLOY_WEBHOOK_URL }}
@@ -228,14 +233,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-user:
     runs-on: ubuntu-latest
@@ -306,14 +323,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-content:
     runs-on: ubuntu-latest
@@ -354,8 +383,12 @@ jobs:
           </settings>
           XML
 
+      # 先 install 本仓库的 common，避免仅构建 content 时从 ~/.m2 或 Nexus 拉到与当前 proto 不一致的旧 SNAPSHOT
       - name: Maven 部署 — micro-drama-content
-        run: mvn -f backend-java/micro-drama-content/pom.xml clean deploy -DskipTests
+        run: |
+          set -e
+          mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
+          mvn -f backend-java/micro-drama-content/pom.xml clean deploy -DskipTests
 
       - name: 配置 Docker 私服
         run: |
@@ -384,14 +417,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-transcoder:
     runs-on: ubuntu-latest
@@ -444,14 +489,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-video:
     runs-on: ubuntu-latest
@@ -504,14 +561,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-payment:
     runs-on: ubuntu-latest
@@ -559,14 +628,26 @@ jobs:
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}'
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -651,12 +732,24 @@ jobs:
           docker push "${REG}/${IMG}:${TAG}"
 
       - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
         run: |
           set -e
-          curl -fsS --show-error -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
                -H "X-Deploy-Token: $DEPLOY_TOKEN" \
                -H "Content-Type: application/json" \
-               -d '{"services":"${{ matrix.deploy_service }}"}'
+               -d '{"services":"${{ matrix.deploy_service }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ matrix.deploy_service }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ matrix.deploy_service }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
 
