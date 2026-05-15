@@ -11,7 +11,8 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
- * 对应 user_db.member_plan
+ * 会员套餐（表名 member_plan）。
+ * 若运行时报 relation "member_plan" does not exist，请在当前数据源库执行 {@code src/main/resources/db/member_plan.sql}。
  */
 @Data
 @TableName("member_plan")
