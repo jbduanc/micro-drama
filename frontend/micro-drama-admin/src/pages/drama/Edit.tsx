@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { Pencil, Play, Plus, Trash2 } from "lucide-react"
 
-import { http } from "@/api/http"
-import type { DramaEpisode, MicroDramaDTO, Result } from "@/api/drama/types"
+import { dramaService } from "@/api/drama/service"
+import type { DramaEpisode, MicroDramaDTO } from "@/api/drama/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -116,8 +116,8 @@ export default function DramaEditPage() {
   async function fetchDetail(dramaId: string) {
     setLoading(true)
     try {
-      const res = await http.get<Result<MicroDramaDTO>>(`/microDramas/detail/${dramaId}`)
-      const data = res.data?.data
+      const res = await dramaService.detail(dramaId)
+      const data = res?.data
       if (!data) throw new Error("empty data")
 
       setForm({
@@ -285,9 +285,9 @@ export default function DramaEditPage() {
         })),
       }
 
-      const res = await http.post<Result<boolean>>("/microDramas/saveOrUpdate", payload)
-      const ok = res.data?.data
-      if (!ok) throw new Error(res.data?.msg || res.data?.message || "save failed")
+      const res = await dramaService.saveOrUpdate(payload)
+      const ok = res?.data
+      if (!ok) throw new Error(res?.msg || res?.message || "save failed")
       toast.success(isCreate ? "新增成功" : "保存成功")
       navigate("/dramas")
     } catch (e) {

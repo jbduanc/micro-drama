@@ -10,6 +10,11 @@ export default defineConfig(() => {
     process.env.ADMIN_API_TARGET ??
     "http://47.84.207.243:6001"
 
+  const contentApiTarget =
+    process.env.VITE_CONTENT_API_TARGET ??
+    process.env.CONTENT_API_TARGET ??
+    "http://127.0.0.1:6002"
+
   return {
     plugins: [react()],
     server: {
@@ -28,6 +33,13 @@ export default defineConfig(() => {
           target: adminApiTarget,
           changeOrigin: true,
           rewrite: (p) => `/admin-api${p}`,
+        },
+
+        // 短剧管理：直连 micro-drama-content（与 axios contentHttp baseURL `/content-api` 对应）
+        "/content-api": {
+          target: contentApiTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/content-api/, "") || "/",
         },
       },
     },

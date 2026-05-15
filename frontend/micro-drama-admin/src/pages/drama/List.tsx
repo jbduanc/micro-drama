@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
-import { http } from "@/api/http"
-import type { MicroDramaDTO, MicroDramaStatus, Result, TablePageInfo } from "@/api/drama/types"
+import { dramaService } from "@/api/drama/service"
+import type { MicroDramaDTO, MicroDramaStatus } from "@/api/drama/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -36,9 +36,9 @@ export default function DramaListPage() {
   async function fetchList() {
     setLoading(true)
     try {
-      const res = await http.post<TablePageInfo<MicroDramaDTO>>("/microDramas/pageList", requestBody)
-      setRows(res.data?.data ?? res.data?.list ?? [])
-      setTotal(res.data?.total ?? 0)
+      const page = await dramaService.pageList(requestBody)
+      setRows(page?.data ?? page?.list ?? [])
+      setTotal(page?.total ?? 0)
     } catch (e) {
       console.error(e)
       toast.error("加载短剧列表失败")
@@ -54,9 +54,9 @@ export default function DramaListPage() {
     const confirmed = window.confirm("确定删除该短剧吗？将级联删除所有剧集。")
     if (!confirmed) return
     try {
-      const res = await http.post<Result<boolean>>(`/microDramas/delete/${dramaId}`)
-      const ok = res.data?.data
-      if (!ok) throw new Error(res.data?.msg || res.data?.message || "delete failed")
+      const res = await dramaService.remove(dramaId)
+      const ok = res?.data
+      if (!ok) throw new Error(res?.msg || res?.message || "delete failed")
       toast.success("删除成功")
       const nextTotal = Math.max(0, total - 1)
       const nextPages = Math.max(1, Math.ceil(nextTotal / size))
