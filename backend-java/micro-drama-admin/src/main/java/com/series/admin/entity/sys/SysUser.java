@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.series.admin.typehandler.UuidTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -22,8 +23,9 @@ public class SysUser extends Model<SysUser> {
 
     private static final long serialVersionUID = 1L;
 
-    /** 与 PostgreSQL UUID 列一致；勿用 ASSIGN_UUID 生成 String 绑定 */
-    @TableId(type = IdType.INPUT)
+    /** 与 PostgreSQL UUID 列一致；typeHandler 保证 insert 参数映射能解析（与 MP 版本无关） */
+    @TableId(value = "id", type = IdType.INPUT)
+    @TableField(value = "id", typeHandler = UuidTypeHandler.class)
     private UUID id;
 
     @TableField("google_email")
