@@ -23,6 +23,13 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- 本模块源码使用 Lombok；显式声明避免仅依赖 transitive 时 CI 漏带注解处理器 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- gRPC client（替代 Feign 做服务间调用） -->
         <dependency>
             <groupId>net.devh</groupId>
