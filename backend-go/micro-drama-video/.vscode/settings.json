@@ -1,0 +1,13 @@
+{
+  "go.toolsEnvVars": {
+    "GOMODCACHE": "C:\\Users\\Administrator\\go\\pkg\\mod",
+    "GOPROXY": "https://goproxy.cn,direct"
+  },
+  "go.buildEnvVars": {
+    "GOMODCACHE": "C:\\Users\\Administrator\\go\\pkg\\mod",
+    "GOPROXY": "https://goproxy.cn,direct"
+  },
+  "go.alternateTools": {
+    "dlv": "C:\\Users\\Administrator\\go\\bin\\dlv.exe"
+  }
+}

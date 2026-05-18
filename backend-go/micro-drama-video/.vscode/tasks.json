@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-video-api-debug",
+      "type": "process",
+      "command": "go",
+      "args": [
+        "build",
+        "-gcflags",
+        "all=-N -l",
+        "-o",
+        "${workspaceFolder}/.vscode/debug/video-api.exe",
+        "./cmd/video-api"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "GOMODCACHE": "C:\\Users\\Administrator\\go\\pkg\\mod",
+          "GOCACHE": "C:\\Users\\Administrator\\AppData\\Local\\go-build",
+          "GOPROXY": "https://goproxy.cn,direct"
+        }
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": true
+      },
+      "problemMatcher": ["$go"]
+    }
+  ]
+}
