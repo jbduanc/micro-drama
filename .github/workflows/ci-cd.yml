@@ -538,7 +538,7 @@ jobs:
         working-directory: backend-go/micro-drama-video
         run: |
           go mod download
-          go build -o /dev/null ./cmd/video-worker
+          go build -o /dev/null ./cmd/video-api
 
       - name: 配置 Docker 私服
         run: |

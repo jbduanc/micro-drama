@@ -2,11 +2,11 @@
 
 目标：Worker / Web3 / 高并发播放等用 Go；与 Java `content` 等通过 **gRPC / Kafka** 协作。
 
-## micro-drama-video（转码 Worker）
+## micro-drama-video（视频 API）
 
 - **目录**：`micro-drama-video/`
-- **入口**：`cmd/video-worker/main.go`
-- **技术**：Sarama（Kafka）+ 调用 FFmpeg + MinIO SDK（S3 兼容，适合 Vultr Object Storage）
+- **入口**：`cmd/video-api/main.go`
+- **技术**：Gin + Consul + 阿里云 OSS + Kafka 生产者 + PostgreSQL（转码由 `micro-drama-transcoder` 消费 Kafka 完成）
 
 ### 环境变量（前缀 `VIDEO_`）
 
