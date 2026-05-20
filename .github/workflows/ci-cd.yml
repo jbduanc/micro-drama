@@ -92,7 +92,6 @@ jobs:
               - 'backend-go/micro-drama-transcoder/**'
             video:
               - 'backend-go/micro-drama-video/**'
-              - '.github/workflows/ci-cd.yml'
             payment:
               - 'backend-go/micro-drama-payment/**'
             frontend_admin:
