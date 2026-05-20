@@ -1,4 +1,4 @@
-# 镜像名：registry/backend-<子目录名>、registry/frontend-<子目录名>（子目录 = 工程文件夹名，如 micro-drama-admin）
+# 镜像名：registry/backend-<子目录名>、registry/frontend-<子目录名>（子目录 = 工程文件夹名，如 micro-drama-admin） 
 # Monorepo：按服务拆 job；push 走 paths-filter；手动运行按勾选项
 name: 短剧项目 CI/CD (Monorepo Multi-Service)
 
@@ -45,10 +45,11 @@ on:
         default: false
 
 env:
-  # 请在 GitHub Repository Variables 中配置：
+  # 这些请配置在 GitHub Repository Variables（Settings → Secrets and variables → Actions → Variables）
   # - NEXUS_DOCKER_HOST: docker.dramadjbo.com
   # - NEXUS_URL: https://repo.dramadjbo.com
   # - DEPLOY_WEBHOOK_URL: https://deploy.dramadjbo.com/hooks/deploy
+  # Webhook 若返回 5xx，多为部署端未注册 JSON 里 services 与 DEPLOY_SERVICE 一致、或 deploy 服务自身异常（与 curl 无关）。
   NEXUS_DOCKER_HOST: ${{ vars.NEXUS_DOCKER_HOST }}
   NEXUS_URL: ${{ vars.NEXUS_URL }}
   DEPLOY_WEBHOOK_URL: ${{ vars.DEPLOY_WEBHOOK_URL }}
@@ -206,7 +207,8 @@ jobs:
         run: |
           set -e
           mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
-          mvn -f backend-java/micro-drama-admin/pom.xml clean deploy -DskipTests
+          # CI 中服务模块只需产出 jar 供镜像构建；不需要上传到 Nexus（避免大包触发 413）
+          mvn -f backend-java/micro-drama-admin/pom.xml clean package -DskipTests
 
       - name: 配置 Docker 私服
         run: |
@@ -299,7 +301,8 @@ jobs:
         run: |
           set -e
           mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
-          mvn -f backend-java/micro-drama-user/pom.xml clean deploy -DskipTests
+          # CI 中服务模块只需产出 jar 供镜像构建；不需要上传到 Nexus（避免大包触发 413）
+          mvn -f backend-java/micro-drama-user/pom.xml clean package -DskipTests
 
       - name: 配置 Docker 私服
         run: |
@@ -393,7 +396,8 @@ jobs:
         run: |
           set -e
           mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
-          mvn -f backend-java/micro-drama-content/pom.xml clean deploy -DskipTests
+          # CI 中服务模块只需产出 jar 供镜像构建；不需要上传到 Nexus（避免大包触发 413）
+          mvn -f backend-java/micro-drama-content/pom.xml clean package -DskipTests
 
       - name: 配置 Docker 私服
         run: |
@@ -757,4 +761,3 @@ jobs:
           fi
           echo "::warning::Deploy webhook failed for ${{ matrix.deploy_service }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
           exit 1
-
