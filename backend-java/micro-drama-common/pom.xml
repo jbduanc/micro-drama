@@ -154,11 +154,11 @@
     <distributionManagement>
         <repository>
             <id>maven-releases</id>
-            <url>http://nexus.47.84.207.243.nip.io/repository/maven-releases/</url>
+            <url>https://repo.dramadjbo.com/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>maven-snapshots</id>
-            <url>http://nexus.47.84.207.243.nip.io/repository/maven-snapshots/</url>
+            <url>https://repo.dramadjbo.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 

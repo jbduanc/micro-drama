@@ -45,11 +45,10 @@ on:
         default: false
 
 env:
-  # 这些请配置在 GitHub Repository Variables（Settings → Secrets and variables → Actions → Variables）
-  # - NEXUS_DOCKER_HOST: 例如 nexus-docker.47.84.207.243.nip.io
-  # - NEXUS_URL: 例如 http://nexus.47.84.207.243.nip.io
-  # - DEPLOY_WEBHOOK_URL: 例如 http://deploy.47.84.207.243.nip.io/hooks/deploy
-  # Webhook 若返回 5xx，多为部署端未注册 JSON 里 services 与 DEPLOY_SERVICE 一致、或 deploy 服务自身异常（与 curl 无关）。
+  # 请在 GitHub Repository Variables 中配置：
+  # - NEXUS_DOCKER_HOST: docker.dramadjbo.com
+  # - NEXUS_URL: https://repo.dramadjbo.com
+  # - DEPLOY_WEBHOOK_URL: https://deploy.dramadjbo.com/hooks/deploy
   NEXUS_DOCKER_HOST: ${{ vars.NEXUS_DOCKER_HOST }}
   NEXUS_URL: ${{ vars.NEXUS_URL }}
   DEPLOY_WEBHOOK_URL: ${{ vars.DEPLOY_WEBHOOK_URL }}
