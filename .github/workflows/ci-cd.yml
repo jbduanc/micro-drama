@@ -532,6 +532,14 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v4
 
+      - name: 打印构建版本信息（排查 go.mod / commit）
+        run: |
+          set -e
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          git rev-parse HEAD
+          echo "---- backend-go/micro-drama-video/go.mod (first 8 lines) ----"
+          head -n 8 backend-go/micro-drama-video/go.mod
+
       - name: 安装 Go
         uses: actions/setup-go@v5
         with:
