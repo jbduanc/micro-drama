@@ -105,6 +105,8 @@ func (s *VideoService) Upload(ctx context.Context, in *UploadInput) (*UploadOutp
 
 	ev := &events.VideoUploadCompletedEvent{
 		VideoID:         videoID,
+		DramaID:         in.DramaID,
+		EpisodeID:       in.EpisodeID,
 		SourceObjectKey: objectKey,
 		SourceEtag:      etag,
 		UploadedAt:      time.Now().UnixMilli(),

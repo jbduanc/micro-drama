@@ -6,7 +6,7 @@ COPY . .
 RUN go mod download && CGO_ENABLED=0 go build -ldflags="-s -w" -o /out/transcoder ./cmd/transcoder
 
 FROM alpine:3.19
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates ffmpeg
 COPY --from=build /out/transcoder /usr/local/bin/transcoder
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/transcoder"]

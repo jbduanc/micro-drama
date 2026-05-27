@@ -18,6 +18,16 @@ public class VideoUploadCompletedEvent implements Serializable {
     private String videoId;
 
     /**
+     * 剧集ID（可选）。用于转码服务落到 hls/{dramaId}/{episodeId}/
+     */
+    private String dramaId;
+
+    /**
+     * 集数ID（可选）。用于转码服务落到 hls/{dramaId}/{episodeId}/
+     */
+    private String episodeId;
+
+    /**
      * 原始文件在对象存储的 Key（例如 s3://bucket/key 里的 key）
      */
     private String sourceObjectKey;

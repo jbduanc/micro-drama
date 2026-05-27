@@ -24,6 +24,10 @@ const (
 type VideoUploadCompletedEvent struct {
 	// VideoID 视频资源唯一 ID，由本服务 uuid 生成。
 	VideoID string `json:"videoId"`
+	// DramaID 剧集 ID（可选）。用于转码服务落盘到 hls/{dramaId}/{episodeId}/。
+	DramaID *string `json:"dramaId,omitempty"`
+	// EpisodeID 集数 ID（可选）。用于转码服务落盘到 hls/{dramaId}/{episodeId}/。
+	EpisodeID *string `json:"episodeId,omitempty"`
 	// SourceObjectKey 原片在 OSS 中的对象键，例如 uploads/{videoId}/demo.mp4。
 	SourceObjectKey string `json:"sourceObjectKey"`
 	// SourceEtag OSS 返回的 ETag，可用于校验文件完整性（可选）。
