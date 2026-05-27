@@ -72,18 +72,27 @@ go run ./cmd/video-api
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/healthz` | 健康检查 |
-| POST | `/v1/video/upload` | multipart 上传视频 |
-| GET | `/v1/video/play?videoId=` | 播放鉴权，返回预签名 URL |
+| POST | `/v1/video/upload-url` | 申请原片直传预签名 URL（JSON） |
+| POST | `/v1/video/upload-complete` | 直传完成后回调，落库并发 Kafka |
+| GET | `/v1/video/play?videoId=&orderId=` | 播放鉴权（订单校验预留），返回带 token 的预签名 URL |
+
+### 直传上传流程
+
+1. `POST /v1/video/upload-url` body: `{"dramaId":"1001","episodeId":"1"}`  
+   → 返回 `uploadUrl`、`fileKey`（`raw/1001/1.mp4`）、`videoId`
+2. 前端 `PUT uploadUrl`，Body 为视频文件
+3. `POST /v1/video/upload-complete` body: `{"videoId","fileKey","dramaId","episodeId","etag?","sizeBytes?"}`  
+   → 校验 OSS 对象存在 → 落库 → Kafka → 创建转码任务
 
 ---
 
-## 上传流程（日志关键字）
+## 上传完成流程（日志关键字）
 
-1. `upload started` → 收到请求  
-2. `oss put object succeeded` → 原片上传 OSS  
+1. `upload url created` → 签发预签名 PUT  
+2. `upload complete started` → 收到完成回调  
 3. `video_asset created` → 写入 PostgreSQL  
-4. `kafka event published` → 通知转码  
-5. `transcode_task created` → 写入转码任务表  
+4. `kafka event published` → 通知 transcoder  
+5. `upload complete finished` → 转码任务已创建  
 
 ---
 

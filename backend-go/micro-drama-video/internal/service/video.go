@@ -1,14 +1,15 @@
 // Package service 是业务逻辑层（类比 Java @Service）。
-//
-// 编排 OSS 上传、PostgreSQL 落库、Kafka 通知、播放鉴权等流程。
 package service
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
-	"path"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ import (
 	"micro-drama-video/internal/storage"
 )
 
-// VideoService 视频相关业务实现（依赖注入：构造时传入 OSS/Kafka/Repo）。
+// VideoService 视频相关业务实现。
 type VideoService struct {
 	log   *zap.Logger
 	cfg   *config.Config
@@ -32,82 +33,141 @@ type VideoService struct {
 	repo  *repository.VideoRepo
 }
 
-// NewVideoService 构造 VideoService，由 main 在启动时调用一次。
+// NewVideoService 构造 VideoService。
 func NewVideoService(log *zap.Logger, cfg *config.Config, oss *storage.OSS, producer *kafka.Producer, repo *repository.VideoRepo) *VideoService {
 	return &VideoService{log: log, cfg: cfg, oss: oss, kafka: producer, repo: repo}
 }
 
-// UploadInput 上传接口入参。
-type UploadInput struct {
-	FileName    string
+// --- 直传：申请预签名 URL ---
+
+type UploadURLInput struct {
+	DramaID     string
+	EpisodeID   string
 	ContentType string
-	Size        int64
-	Reader      io.Reader
 	UserID      string
-	DramaID     *string
-	EpisodeID   *string
 }
 
-// UploadOutput 上传成功返回给前端。
-type UploadOutput struct {
+type UploadURLOutput struct {
+	VideoID   string `json:"videoId"`
+	UploadURL string `json:"uploadUrl"`
+	FileKey   string `json:"fileKey"`
+	ExpiresIn int64  `json:"expiresIn"`
+}
+
+// CreateUploadURL 生成 raw/{dramaId}/{episodeId}.mp4 的 PUT 预签名 URL，前端直传 OSS。
+func (s *VideoService) CreateUploadURL(ctx context.Context, in *UploadURLInput) (*UploadURLOutput, error) {
+	if in == nil {
+		return nil, fmt.Errorf("invalid request")
+	}
+	dramaID := strings.TrimSpace(in.DramaID)
+	episodeID := strings.TrimSpace(in.EpisodeID)
+	if dramaID == "" || episodeID == "" {
+		return nil, fmt.Errorf("dramaId and episodeId are required")
+	}
+	_ = in.UserID // TODO: JWT 鉴权
+
+	videoID := uuid.NewString()
+	fileKey := storage.BuildRawKey(s.cfg.OSS.UploadPrefix, dramaID, episodeID)
+	contentType := strings.TrimSpace(in.ContentType)
+	if contentType == "" {
+		contentType = "video/mp4"
+	}
+
+	expireSec := s.cfg.OSS.UploadPresignExpireSeconds
+	uploadURL, err := s.oss.PresignPut(ctx, fileKey, contentType, time.Duration(expireSec)*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("presign upload url: %w", err)
+	}
+
+	s.log.Info("upload url created",
+		zap.String("videoId", videoID),
+		zap.String("fileKey", fileKey),
+		zap.String("dramaId", dramaID),
+		zap.String("episodeId", episodeID),
+	)
+
+	return &UploadURLOutput{
+		VideoID:   videoID,
+		UploadURL: uploadURL,
+		FileKey:   fileKey,
+		ExpiresIn: int64(expireSec),
+	}, nil
+}
+
+// --- 直传：上传完成回调 ---
+
+type CompleteUploadInput struct {
+	VideoID   string
+	FileKey   string
+	DramaID   string
+	EpisodeID string
+	Etag      string
+	SizeBytes int64
+	UserID    string
+}
+
+type CompleteUploadOutput struct {
 	VideoID         string `json:"videoId"`
 	SourceObjectKey string `json:"sourceObjectKey"`
 	SourceEtag      string `json:"sourceEtag,omitempty"`
 	TranscodeTaskID string `json:"transcodeTaskId,omitempty"`
 }
 
-// Upload 完整上传流程：OSS → video_asset → Kafka → transcode_task。
-func (s *VideoService) Upload(ctx context.Context, in *UploadInput) (*UploadOutput, error) {
-	if in == nil || in.Reader == nil {
-		return nil, fmt.Errorf("file is required")
+// CompleteUpload 前端直传 OSS 成功后调用：校验对象 → 落库 → 发 Kafka 通知转码。
+func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInput) (*CompleteUploadOutput, error) {
+	if in == nil {
+		return nil, fmt.Errorf("invalid request")
+	}
+	videoID := strings.TrimSpace(in.VideoID)
+	fileKey := strings.TrimSpace(in.FileKey)
+	dramaID := strings.TrimSpace(in.DramaID)
+	episodeID := strings.TrimSpace(in.EpisodeID)
+	if videoID == "" || fileKey == "" || dramaID == "" || episodeID == "" {
+		return nil, fmt.Errorf("videoId, fileKey, dramaId and episodeId are required")
 	}
 	_ = in.UserID // TODO: JWT 鉴权
 
-	videoID := uuid.NewString()
-	objectKey := storage.BuildUploadKey(s.cfg.OSS.UploadPrefix, videoID, sanitizeFileName(in.FileName))
-
-	s.log.Info("upload started",
-		zap.String("videoId", videoID),
-		zap.String("fileName", in.FileName),
-		zap.Int64("sizeBytes", in.Size),
-		zap.String("objectKey", objectKey),
-		zap.Stringp("dramaId", in.DramaID),
-		zap.Stringp("episodeId", in.EpisodeID),
-	)
-
-	etag, err := s.oss.PutObject(ctx, objectKey, in.Reader, in.Size, in.ContentType)
-	if err != nil {
-		s.log.Error("oss put object failed", zap.String("videoId", videoID), zap.Error(err))
-		return nil, fmt.Errorf("oss upload: %w", err)
+	expectedKey := storage.BuildRawKey(s.cfg.OSS.UploadPrefix, dramaID, episodeID)
+	if fileKey != expectedKey {
+		return nil, fmt.Errorf("fileKey mismatch, expected %s", expectedKey)
 	}
-	s.log.Info("oss put object succeeded",
+
+	size, etag, err := s.oss.StatObject(ctx, fileKey)
+	if err != nil {
+		s.log.Error("oss stat object failed", zap.String("fileKey", fileKey), zap.Error(err))
+		return nil, fmt.Errorf("object not found in storage, upload may have failed")
+	}
+	if in.SizeBytes > 0 {
+		size = in.SizeBytes
+	}
+	if strings.TrimSpace(in.Etag) != "" {
+		etag = strings.TrimSpace(in.Etag)
+	}
+
+	s.log.Info("upload complete started",
 		zap.String("videoId", videoID),
-		zap.String("objectKey", objectKey),
-		zap.String("etag", etag),
+		zap.String("fileKey", fileKey),
+		zap.Int64("sizeBytes", size),
 	)
 
 	if err := s.repo.CreateVideoAsset(ctx, repository.CreateVideoAssetParams{
 		ID:        videoID,
-		DramaID:   in.DramaID,
-		EpisodeID: in.EpisodeID,
-		RawPath:   objectKey,
-		SizeBytes: in.Size,
+		DramaID:   &dramaID,
+		EpisodeID: &episodeID,
+		RawPath:   fileKey,
+		SizeBytes: size,
 	}); err != nil {
 		s.log.Error("insert video_asset failed", zap.String("videoId", videoID), zap.Error(err))
 		return nil, fmt.Errorf("insert video_asset: %w", err)
 	}
-	s.log.Info("video_asset created",
-		zap.String("videoId", videoID),
-		zap.String("status", model.VideoStatusUploaded),
-	)
 
-	outputPath := strings.ReplaceAll(s.cfg.Playback.HLSKeyTemplate, "{videoId}", videoID)
+	outputPath := storage.BuildHLSKey(s.cfg.OSS.HLSPrefix, dramaID, episodeID)
 
 	ev := &events.VideoUploadCompletedEvent{
 		VideoID:         videoID,
-		DramaID:         in.DramaID,
-		EpisodeID:       in.EpisodeID,
-		SourceObjectKey: objectKey,
+		DramaID:         &dramaID,
+		EpisodeID:       &episodeID,
+		SourceObjectKey: fileKey,
 		SourceEtag:      etag,
 		UploadedAt:      time.Now().UnixMilli(),
 	}
@@ -118,7 +178,7 @@ func (s *VideoService) Upload(ctx context.Context, in *UploadInput) (*UploadOutp
 
 	taskID, err := s.repo.CreateTranscodeTask(ctx, repository.CreateTranscodeTaskParams{
 		VideoAssetID: videoID,
-		InputPath:    objectKey,
+		InputPath:    fileKey,
 		OutputPath:   outputPath,
 	})
 	if err != nil {
@@ -126,107 +186,186 @@ func (s *VideoService) Upload(ctx context.Context, in *UploadInput) (*UploadOutp
 		return nil, fmt.Errorf("insert transcode_task: %w", err)
 	}
 
-	s.log.Info("upload completed",
+	s.log.Info("upload complete finished",
 		zap.String("videoId", videoID),
 		zap.String("transcodeTaskId", taskID),
 		zap.String("expectedHlsPath", outputPath),
 	)
 
-	return &UploadOutput{
+	return &CompleteUploadOutput{
 		VideoID:         videoID,
-		SourceObjectKey: objectKey,
+		SourceObjectKey: fileKey,
 		SourceEtag:      etag,
 		TranscodeTaskID: taskID,
 	}, nil
 }
 
-// PlayInput 播放鉴权入参。
+// --- 播放鉴权 ---
+
 type PlayInput struct {
 	VideoID string
+	OrderID string
 	UserID  string
 }
 
-// PlayOutput 播放鉴权成功返回。
 type PlayOutput struct {
 	VideoID   string `json:"videoId"`
 	PlayURL   string `json:"playUrl"`
+	Token     string `json:"token"`
 	ExpiresIn int64  `json:"expiresIn"`
 	Status    string `json:"status"`
 	HlsPath   string `json:"hlsPath"`
 }
 
-// PlayAuth 鉴权后读取 hls_path，必要时签发 OSS 预签名 URL。
+// PlayAuth 校验订单（预留）后返回带 token 的 HLS 预签名播放地址。
 func (s *VideoService) PlayAuth(ctx context.Context, in *PlayInput) (*PlayOutput, error) {
 	if in == nil || strings.TrimSpace(in.VideoID) == "" {
 		return nil, fmt.Errorf("videoId is required")
 	}
-	_ = in.UserID // TODO: 权益校验
+	userID := strings.TrimSpace(in.UserID)
 
-	s.log.Info("play auth started", zap.String("videoId", in.VideoID))
+	if err := s.validateOrder(ctx, userID, in.OrderID, in.VideoID); err != nil {
+		return nil, err
+	}
+
+	s.log.Info("play auth started", zap.String("videoId", in.VideoID), zap.String("orderId", in.OrderID))
 
 	asset, err := s.repo.GetVideoAssetByID(ctx, in.VideoID)
 	if err != nil {
 		if errors.Is(err, repository.ErrVideoNotFound) {
-			s.log.Warn("play auth video not found", zap.String("videoId", in.VideoID))
 			return nil, fmt.Errorf("video not found")
 		}
-		s.log.Error("play auth query failed", zap.String("videoId", in.VideoID), zap.Error(err))
 		return nil, err
 	}
 
 	if s.cfg.Playback.RequireReady && asset.Status != model.VideoStatusReady {
-		s.log.Warn("play auth video not ready",
-			zap.String("videoId", in.VideoID),
-			zap.String("status", asset.Status),
-		)
 		return nil, fmt.Errorf("video status is %s, not ready for playback", asset.Status)
 	}
-	if asset.HlsPath == nil || strings.TrimSpace(*asset.HlsPath) == "" {
-		s.log.Warn("play auth hls_path empty", zap.String("videoId", in.VideoID), zap.String("status", asset.Status))
+
+	hlsPath := s.resolveHLSPath(asset)
+	if hlsPath == "" {
 		return nil, fmt.Errorf("hls_path is empty, video may still be transcoding")
 	}
 
-	hlsPath := strings.TrimSpace(*asset.HlsPath)
+	expireSec := s.cfg.Playback.URLExpireSeconds
 	playURL, err := s.resolvePlayURL(ctx, hlsPath)
 	if err != nil {
-		s.log.Error("play auth presign failed", zap.String("videoId", in.VideoID), zap.Error(err))
 		return nil, err
 	}
 
-	expire := int64(s.cfg.Playback.URLExpireSeconds)
+	token := s.signPlayToken(in.VideoID, userID, expireSec)
+	playURL = appendQueryParam(playURL, "token", token)
+
 	s.log.Info("play auth succeeded",
 		zap.String("videoId", in.VideoID),
 		zap.String("status", asset.Status),
-		zap.Int64("expiresIn", expire),
+		zap.Int64("expiresIn", int64(expireSec)),
 	)
 
 	return &PlayOutput{
 		VideoID:   in.VideoID,
 		PlayURL:   playURL,
-		ExpiresIn: expire,
+		Token:     token,
+		ExpiresIn: int64(expireSec),
 		Status:    asset.Status,
 		HlsPath:   hlsPath,
 	}, nil
 }
 
-// resolvePlayURL 若 hls_path 已是 http(s) 则直接返回，否则按 OSS object key 预签名。
+// validateOrder 校验用户是否已购买/有权播放（预留，对接支付服务）。
+func (s *VideoService) validateOrder(ctx context.Context, userID, orderID, videoID string) error {
+	_ = ctx
+	_ = userID
+	_ = orderID
+	_ = videoID
+	// TODO: 调用 micro-drama-payment 校验订单支付状态
+	// if orderID == "" { return fmt.Errorf("orderId is required") }
+	return nil
+}
+
+func (s *VideoService) resolveHLSPath(asset *model.VideoAsset) string {
+	if asset.HlsPath != nil && strings.TrimSpace(*asset.HlsPath) != "" {
+		return strings.TrimSpace(*asset.HlsPath)
+	}
+	if asset.DramaID != nil && asset.EpisodeID != nil {
+		return storage.BuildHLSKey(s.cfg.OSS.HLSPrefix, *asset.DramaID, *asset.EpisodeID)
+	}
+	return ""
+}
+
 func (s *VideoService) resolvePlayURL(ctx context.Context, hlsPath string) (string, error) {
 	lower := strings.ToLower(hlsPath)
 	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
 		return hlsPath, nil
 	}
 	expire := time.Duration(s.cfg.Playback.URLExpireSeconds) * time.Second
-	url, err := s.oss.PresignGet(ctx, hlsPath, expire)
+	u, err := s.oss.PresignGet(ctx, hlsPath, expire)
 	if err != nil {
 		return "", fmt.Errorf("presign play url: %w", err)
 	}
-	return url, nil
+	return u, nil
 }
 
-func sanitizeFileName(name string) string {
-	name = path.Base(strings.TrimSpace(name))
-	if name == "" || name == "." {
-		return "video.mp4"
+func (s *VideoService) signPlayToken(videoID, userID string, expireSec int) string {
+	secret := strings.TrimSpace(s.cfg.Playback.TokenSecret)
+	if secret == "" {
+		secret = "micro-drama-play-token-dev"
 	}
-	return name
+	exp := time.Now().Add(time.Duration(expireSec) * time.Second).Unix()
+	payload := fmt.Sprintf("%s|%s|%d", videoID, userID, exp)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(payload))
+	sig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	return fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString([]byte(payload)), sig)
+}
+
+func appendQueryParam(rawURL, key, value string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return rawURL + "&" + key + "=" + url.QueryEscape(value)
+	}
+	q := u.Query()
+	q.Set(key, value)
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// VerifyPlayToken 校验播放 token（供后续网关或 CDN 回调使用，当前播放接口已内嵌签发）。
+func (s *VideoService) VerifyPlayToken(token, videoID, userID string) bool {
+	secret := strings.TrimSpace(s.cfg.Playback.TokenSecret)
+	if secret == "" {
+		secret = "micro-drama-play-token-dev"
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 2 {
+		return false
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return false
+	}
+	sigBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payloadBytes)
+	if !hmac.Equal(sigBytes, mac.Sum(nil)) {
+		return false
+	}
+	seg := strings.Split(string(payloadBytes), "|")
+	if len(seg) != 3 {
+		return false
+	}
+	if seg[0] != videoID {
+		return false
+	}
+	if userID != "" && seg[1] != userID {
+		return false
+	}
+	exp, err := strconv.ParseInt(seg[2], 10, 64)
+	if err != nil || time.Now().Unix() > exp {
+		return false
+	}
+	return true
 }

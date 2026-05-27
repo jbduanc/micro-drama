@@ -187,10 +187,13 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	c.OSS.UseSSL = v.GetBool("oss_use_ssl")
 	c.OSS.Region = v.GetString("oss_region")
 	c.OSS.UploadPrefix = strings.Trim(v.GetString("oss_upload_prefix"), "/")
+	c.OSS.UploadPresignExpireSeconds = v.GetInt("oss_upload_presign_expire_seconds")
+	c.OSS.HLSPrefix = strings.Trim(v.GetString("oss_hls_prefix"), "/")
 
 	c.Playback.URLExpireSeconds = v.GetInt("playback_url_expire_seconds")
 	c.Playback.HLSKeyTemplate = v.GetString("playback_hls_key_template")
 	c.Playback.RequireReady = v.GetBool("playback_require_ready")
+	c.Playback.TokenSecret = v.GetString("playback_token_secret")
 
 	c.DB.DSNRaw = v.GetString("db_dsn")
 	c.DB.Host = v.GetString("db_host")
@@ -204,7 +207,13 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 		c.Playback.URLExpireSeconds = 3600
 	}
 	if c.Playback.HLSKeyTemplate == "" {
-		c.Playback.HLSKeyTemplate = "hls/{videoId}/master.m3u8"
+		c.Playback.HLSKeyTemplate = "hls/{dramaId}/{episodeId}/index.m3u8"
+	}
+	if c.OSS.UploadPresignExpireSeconds <= 0 {
+		c.OSS.UploadPresignExpireSeconds = 3600
+	}
+	if c.OSS.HLSPrefix == "" {
+		c.OSS.HLSPrefix = "hls"
 	}
 	if c.DB.Port == 0 {
 		c.DB.Port = 5432
@@ -213,7 +222,7 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 		c.DB.SSLMode = "disable"
 	}
 	if c.OSS.UploadPrefix == "" {
-		c.OSS.UploadPrefix = "uploads"
+		c.OSS.UploadPrefix = "raw"
 	}
 	if c.Kafka.TopicUploadCompleted == "" {
 		c.Kafka.TopicUploadCompleted = "content.video.upload_completed"
@@ -265,19 +274,22 @@ type Config struct {
 	}
 
 	OSS struct {
-		Endpoint     string
-		AccessKey    string
-		SecretKey    string
-		Bucket       string
-		UseSSL       bool
-		Region       string
-		UploadPrefix string
+		Endpoint                   string
+		AccessKey                  string
+		SecretKey                  string
+		Bucket                     string
+		UseSSL                     bool
+		Region                     string
+		UploadPrefix               string // 原片前缀，默认 raw → raw/{dramaId}/{episodeId}.mp4
+		UploadPresignExpireSeconds int
+		HLSPrefix                  string // HLS 前缀，默认 hls
 	}
 
 	Playback struct {
 		URLExpireSeconds int
 		HLSKeyTemplate   string
 		RequireReady     bool
+		TokenSecret      string // 播放 token 签名密钥
 	}
 
 	DB DBConfig

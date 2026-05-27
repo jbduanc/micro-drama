@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -60,6 +61,28 @@ func (o *OSS) PutObject(ctx context.Context, objectKey string, reader io.Reader,
 	return info.ETag, nil
 }
 
+// PresignPut 生成限时有效的 PUT 预签名 URL，供前端直传原片。
+func (o *OSS) PresignPut(ctx context.Context, objectKey, contentType string, expire time.Duration) (string, error) {
+	opts := minio.PutObjectOptions{}
+	if strings.TrimSpace(contentType) != "" {
+		opts.ContentType = contentType
+	}
+	u, err := o.cli.PresignedPutObject(ctx, o.bucket, objectKey, expire)
+	if err != nil {
+		return "", err
+	}
+	return u.String(), nil
+}
+
+// StatObject 校验对象是否存在并返回大小与 ETag。
+func (o *OSS) StatObject(ctx context.Context, objectKey string) (size int64, etag string, err error) {
+	info, err := o.cli.StatObject(ctx, o.bucket, objectKey, minio.StatObjectOptions{})
+	if err != nil {
+		return 0, "", err
+	}
+	return info.Size, info.ETag, nil
+}
+
 // PresignGet 生成限时有效的 GET 预签名 URL。
 //
 // 前端/播放器用此 URL 直接访问 OSS，无需把 AccessKey 暴露给浏览器。
@@ -72,16 +95,24 @@ func (o *OSS) PresignGet(ctx context.Context, objectKey string, expire time.Dura
 	return u.String(), nil
 }
 
-// BuildUploadKey 拼接原片在 OSS 上的对象键。
-//
-// 规则：{prefix}/{videoID}/{fileName}，prefix 为空则为 {videoID}/{fileName}。
-// 示例：uploads/550e8400-e29b-41d4-a716-446655440000/episode01.mp4
-func BuildUploadKey(prefix, videoID, fileName string) string {
-	if fileName == "" {
-		fileName = "video.mp4"
-	}
+// BuildRawKey 原片直传路径：raw/{dramaId}/{episodeId}.mp4
+func BuildRawKey(prefix, dramaID, episodeID string) string {
+	prefix = strings.Trim(prefix, "/")
+	dramaID = strings.Trim(dramaID, "/")
+	episodeID = strings.Trim(episodeID, "/")
 	if prefix == "" {
-		return fmt.Sprintf("%s/%s", videoID, fileName)
+		return fmt.Sprintf("raw/%s/%s.mp4", dramaID, episodeID)
 	}
-	return fmt.Sprintf("%s/%s/%s", prefix, videoID, fileName)
+	return fmt.Sprintf("%s/%s/%s.mp4", prefix, dramaID, episodeID)
+}
+
+// BuildHLSKey 预期 HLS 主清单路径：hls/{dramaId}/{episodeId}/index.m3u8
+func BuildHLSKey(prefix, dramaID, episodeID string) string {
+	prefix = strings.Trim(prefix, "/")
+	dramaID = strings.Trim(dramaID, "/")
+	episodeID = strings.Trim(episodeID, "/")
+	if prefix == "" {
+		return fmt.Sprintf("hls/%s/%s/index.m3u8", dramaID, episodeID)
+	}
+	return fmt.Sprintf("%s/%s/%s/index.m3u8", prefix, dramaID, episodeID)
 }

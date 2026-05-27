@@ -1,8 +1,8 @@
 // Package main 是 micro-drama-video 微服务的程序入口。
 //
 // 本服务职责（与 micro-drama-transcoder 分工）：
-//   - 提供 HTTP API：视频上传（写入阿里云 OSS + 发 Kafka 通知转码）
-//   - 提供 HTTP API：播放鉴权（返回 HLS 预签名 URL，前端直连 OSS 播放）
+//   - 提供 HTTP API：预签名直传原片（前端 PUT OSS）+ 上传完成回调发 Kafka
+//   - 提供 HTTP API：播放鉴权（订单校验预留 + 带 token 的 HLS 预签名 URL）
 //   - 注册到 Consul，供 Kong / Java 服务发现
 //
 // 启动方式：go run ./cmd/video-api  或运行编译后的 video-api 二进制。
@@ -71,8 +71,6 @@ func main() {
 	r := gin.New()
 	// Recovery：捕获 handler 内 panic，避免整个进程崩溃。
 	r.Use(gin.Recovery())
-	// 限制单次上传体积，防止超大文件打满内存/磁盘。
-	r.Use(handler.MaxUploadBytes(0)) // 0 表示使用默认 500MB
 	handler.Register(r, log, svc)
 
 	// ---------- 4. Consul 服务注册（本地调试可设 VIDEO_CONSUL_DISCOVERY_ENABLED=false 跳过）----------
