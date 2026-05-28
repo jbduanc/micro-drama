@@ -194,6 +194,80 @@ func (r *VideoRepo) GetVideoAssetByID(ctx context.Context, id string) (*model.Vi
 	return &a, nil
 }
 
+// ListVideoAssetsByIDs 批量查询视频资产（删除前获取 OSS 路径）。
+func (r *VideoRepo) ListVideoAssetsByIDs(ctx context.Context, ids []string) ([]*model.VideoAsset, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT
+			id, drama_id, episode_id, raw_path, hls_path, cover_path, subtitle_path,
+			duration, size_bytes, resolution, status, created_at, updated_at
+		FROM video_asset
+		WHERE id = ANY($1)`,
+		ids,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []*model.VideoAsset
+	for rows.Next() {
+		var a model.VideoAsset
+		var dramaID, episodeID, hlsPath, coverPath, subtitlePath, resolution *string
+		var duration *int
+		var sizeBytes *int64
+		if err := rows.Scan(
+			&a.ID,
+			&dramaID,
+			&episodeID,
+			&a.RawPath,
+			&hlsPath,
+			&coverPath,
+			&subtitlePath,
+			&duration,
+			&sizeBytes,
+			&resolution,
+			&a.Status,
+			&a.CreatedAt,
+			&a.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		a.DramaID = dramaID
+		a.EpisodeID = episodeID
+		a.HlsPath = hlsPath
+		a.CoverPath = coverPath
+		a.SubtitlePath = subtitlePath
+		a.Resolution = resolution
+		a.Duration = duration
+		a.SizeBytes = sizeBytes
+		out = append(out, &a)
+	}
+	return out, rows.Err()
+}
+
+// DeleteVideoAssetsByIDs 删除视频资产及关联转码任务。
+func (r *VideoRepo) DeleteVideoAssetsByIDs(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM transcode_task WHERE video_asset_id = ANY($1)`, ids); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM video_asset WHERE id = ANY($1)`, ids); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 // nullableUUID 将空字符串转为 nil，避免写入非法 UUID。
 func nullableUUID(s *string) any {
 	if s == nil || *s == "" {

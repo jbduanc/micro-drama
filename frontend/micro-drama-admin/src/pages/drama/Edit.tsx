@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
-import { Pencil, Play, Plus, Trash2 } from "lucide-react"
+import { Pencil, Play, Plus, Trash2, Upload, X } from "lucide-react"
 
 import { dramaService } from "@/api/drama/service"
 import type { DramaEpisode, MicroDramaDTO } from "@/api/drama/types"
+import { uploadFileToOSS, videoService } from "@/api/video/service"
+import type { DeleteVideoItem } from "@/api/video/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -25,6 +27,13 @@ type EpisodeFormState = {
   duration: string
   price: string
   videoAssetId: string
+  /** 直传 OSS 对应的 object key，保存剧集时用于通知转码 */
+  videoFileKey: string
+}
+
+type DiscardedVideo = {
+  videoId: string
+  fileKey: string
 }
 
 function toNumberOrUndefined(value: string) {
@@ -111,7 +120,15 @@ export default function DramaEditPage() {
     duration: "",
     price: "",
     videoAssetId: "",
+    videoFileKey: "",
   })
+  const [originalVideoAssetId, setOriginalVideoAssetId] = useState("")
+  const [discardedVideos, setDiscardedVideos] = useState<DiscardedVideo[]>([])
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [savingEpisode, setSavingEpisode] = useState(false)
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
+  const videoFileInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchDetail(dramaId: string) {
     setLoading(true)
@@ -157,14 +174,48 @@ export default function DramaEditPage() {
     if (epPage > epTotalPages) setEpPage(epTotalPages)
   }, [epPage, epTotalPages])
 
+  function resolveDramaId(): string {
+    return String(form.id ?? dramaIdParam ?? "").trim()
+  }
+
+  function resolveEpisodeIdForUpload(episodeNum: number, episodeId?: string): string {
+    if (episodeId?.trim()) return episodeId.trim()
+    return `num-${episodeNum}`
+  }
+
+  function resetEpisodeVideoSession(savedVideoId?: string) {
+    setOriginalVideoAssetId(savedVideoId ?? "")
+    setDiscardedVideos([])
+    setUploadProgress(null)
+    setUploading(false)
+  }
+
+  function markCurrentVideoDiscarded() {
+    const vid = episodeForm.videoAssetId.trim()
+    const key = episodeForm.videoFileKey.trim()
+    if (!vid) return
+    setDiscardedVideos((prev) => {
+      if (prev.some((d) => d.videoId === vid)) return prev
+      return [...prev, { videoId: vid, fileKey: key }]
+    })
+  }
+
+  function clearEpisodeVideo() {
+    markCurrentVideoDiscarded()
+    setEpisodeForm((f) => ({ ...f, videoAssetId: "", videoFileKey: "" }))
+    setUploadProgress(null)
+  }
+
   function openCreateEpisode() {
     setEditingEpisodeIndex(null)
+    resetEpisodeVideoSession()
     setEpisodeForm({
       episodeNum: String(episodes.length + 1),
       title: "",
       duration: "",
       price: "",
       videoAssetId: "",
+      videoFileKey: "",
     })
     setEpisodeDialogOpen(true)
   }
@@ -173,17 +224,105 @@ export default function DramaEditPage() {
     const ep = episodes[indexInAll]
     if (!ep) return
     setEditingEpisodeIndex(indexInAll)
+    resetEpisodeVideoSession(ep.videoAssetId ?? "")
     setEpisodeForm({
       episodeNum: String(ep.episodeNum ?? ""),
       title: ep.title ?? "",
       duration: ep.duration == null ? "" : String(ep.duration),
       price: ep.price == null ? "" : String(ep.price),
       videoAssetId: ep.videoAssetId ?? "",
+      videoFileKey: "",
     })
     setEpisodeDialogOpen(true)
   }
 
-  function saveEpisodeFromDialog() {
+  async function handleSelectVideoFile(file: File) {
+    const dramaId = resolveDramaId()
+    if (!dramaId) {
+      toast.error("请先保存短剧基础信息后再上传视频")
+      return
+    }
+    const episodeNum = Number(episodeForm.episodeNum)
+    if (!Number.isInteger(episodeNum) || episodeNum <= 0) {
+      toast.error("请先填写正确的集数")
+      return
+    }
+    const prevEp =
+      editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
+    const episodeId = resolveEpisodeIdForUpload(episodeNum, prevEp?.id)
+
+    if (episodeForm.videoAssetId.trim()) {
+      markCurrentVideoDiscarded()
+    }
+
+    setUploading(true)
+    setUploadProgress(0)
+    try {
+      const contentType = file.type || "video/mp4"
+      const { videoId, uploadUrl, fileKey } = await videoService.createUploadUrl({
+        dramaId,
+        episodeId,
+        contentType,
+      })
+      await uploadFileToOSS(file, uploadUrl, contentType, setUploadProgress)
+      setEpisodeForm((f) => ({
+        ...f,
+        videoAssetId: videoId,
+        videoFileKey: fileKey,
+      }))
+      setUploadProgress(100)
+      toast.success("视频已上传至 OSS")
+    } catch (e) {
+      console.error(e)
+      toast.error(e instanceof Error ? e.message : "视频上传失败")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handlePlayEpisode(ep: DramaEpisode) {
+    const videoId = ep.videoAssetId?.trim()
+    if (!videoId) {
+      toast.error("该剧集尚未关联视频")
+      return
+    }
+    setPlayingVideoId(videoId)
+    try {
+      const data = await videoService.play(videoId)
+      if (data.status !== "READY") {
+        toast.error(`视频尚未转码完成（状态：${data.status}），暂不可播放`)
+        return
+      }
+      window.open(data.playUrl, "_blank", "noopener,noreferrer")
+    } catch (e) {
+      console.error(e)
+      toast.error(e instanceof Error ? e.message : "获取播放地址失败")
+    } finally {
+      setPlayingVideoId(null)
+    }
+  }
+
+  function collectVideosToDeleteOnSave(finalVideoId: string): DeleteVideoItem[] {
+    const items: DeleteVideoItem[] = []
+    const seen = new Set<string>()
+
+    const add = (videoId: string, fileKey?: string) => {
+      const id = videoId.trim()
+      if (!id || id === finalVideoId || seen.has(id)) return
+      seen.add(id)
+      items.push({ videoId: id, ...(fileKey?.trim() ? { fileKey: fileKey.trim() } : {}) })
+    }
+
+    for (const d of discardedVideos) {
+      add(d.videoId, d.fileKey)
+    }
+    if (originalVideoAssetId.trim()) {
+      add(originalVideoAssetId)
+    }
+    return items
+  }
+
+  async function saveEpisodeFromDialog() {
     const episodeNum = Number(episodeForm.episodeNum)
     if (!Number.isInteger(episodeNum) || episodeNum <= 0) {
       toast.error("请输入正确的集数（正整数）")
@@ -196,28 +335,70 @@ export default function DramaEditPage() {
     }
 
     const prevEp = editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
-    const next: DramaEpisode = {
-      ...(prevEp?.id ? { id: prevEp.id } : {}),
-      episodeNum,
-      title,
-      duration: toNumberOrUndefined(episodeForm.duration),
-      price: toNumberOrUndefined(episodeForm.price),
-      videoAssetId: episodeForm.videoAssetId.trim() ? episodeForm.videoAssetId.trim() : undefined,
+    const finalVideoId = episodeForm.videoAssetId.trim()
+    const finalFileKey = episodeForm.videoFileKey.trim()
+    const dramaId = resolveDramaId()
+
+    if (finalVideoId && !finalFileKey && finalVideoId !== originalVideoAssetId) {
+      toast.error("视频文件信息缺失，请重新选择并上传视频")
+      return
     }
 
-    setEpisodes((prev) => {
-      const cloned = [...prev]
-      if (editingEpisodeIndex == null) {
-        cloned.push(next)
-      } else {
-        cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
+    setSavingEpisode(true)
+    try {
+      if (finalVideoId && finalFileKey) {
+        if (!dramaId) {
+          toast.error("请先保存短剧基础信息后再提交剧集视频转码")
+          return
+        }
+        const episodeId = resolveEpisodeIdForUpload(episodeNum, prevEp?.id)
+        await videoService.notifyTranscode({
+          videoId: finalVideoId,
+          fileKey: finalFileKey,
+          dramaId,
+          episodeId,
+        })
       }
-      cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
-      return cloned
-    })
 
-    setEpisodeDialogOpen(false)
-    toast.success(editingEpisodeIndex == null ? "已添加剧集（未提交）" : "已更新剧集（未提交）")
+      const toDelete = collectVideosToDeleteOnSave(finalVideoId)
+      if (toDelete.length > 0) {
+        await videoService.deleteVideos(toDelete)
+      }
+
+      const next: DramaEpisode = {
+        ...(prevEp?.id ? { id: prevEp.id } : {}),
+        episodeNum,
+        title,
+        duration: toNumberOrUndefined(episodeForm.duration),
+        price: toNumberOrUndefined(episodeForm.price),
+        videoAssetId: finalVideoId || undefined,
+      }
+
+      setEpisodes((prev) => {
+        const cloned = [...prev]
+        if (editingEpisodeIndex == null) {
+          cloned.push(next)
+        } else {
+          cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
+        }
+        cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
+        return cloned
+      })
+
+      setEpisodeDialogOpen(false)
+      toast.success(
+        editingEpisodeIndex == null
+          ? "已添加剧集（未提交短剧）"
+          : finalVideoId
+            ? "已更新剧集，转码任务已提交"
+            : "已更新剧集（未提交短剧）",
+      )
+    } catch (e) {
+      console.error(e)
+      toast.error(e instanceof Error ? e.message : "保存剧集失败")
+    } finally {
+      setSavingEpisode(false)
+    }
   }
 
   function deleteEpisode(indexInAll: number) {
@@ -468,9 +649,11 @@ export default function DramaEditPage() {
                       <div className="mt-6 flex items-center justify-center">
                         <button
                           type="button"
-                          className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-sm transition hover:bg-muted"
-                          onClick={() => toast.message("播放功能预留（待接入播放器）")}
+                          className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-sm transition hover:bg-muted disabled:opacity-50"
+                          onClick={() => handlePlayEpisode(ep)}
+                          disabled={!ep.videoAssetId || playingVideoId === ep.videoAssetId}
                           aria-label="播放"
+                          title={ep.videoAssetId ? "播放（需转码完成）" : "暂无视频"}
                         >
                           <Play className="h-5 w-5" />
                         </button>
@@ -545,7 +728,7 @@ export default function DramaEditPage() {
           <DialogHeader>
             <DialogTitle>{editingEpisodeIndex == null ? "新增剧集" : "编辑剧集"}</DialogTitle>
             <DialogDescription>
-              与 content_db.episode 对齐：集数、标题、时长（秒）、价格、video_asset_id（UUID，可空）。
+              选择本地视频直传 OSS；保存剧集时将通知转码。更换视频后旧视频 ID 会自动清理。
             </DialogDescription>
           </DialogHeader>
 
@@ -600,22 +783,69 @@ export default function DramaEditPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="videoAssetId">视频资产 ID（video_asset.id）</Label>
-                <Input
-                  id="videoAssetId"
-                  placeholder="UUID，可空"
-                  value={episodeForm.videoAssetId}
-                  onChange={(e) => setEpisodeForm((f) => ({ ...f, videoAssetId: e.target.value }))}
+                <Label>视频</Label>
+                <input
+                  ref={videoFileInputRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ""
+                    if (file) void handleSelectVideoFile(file)
+                  }}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={uploading || savingEpisode}
+                  onClick={() => videoFileInputRef.current?.click()}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? "上传中..." : "选择本地视频上传"}
+                </Button>
+                {uploadProgress != null && (
+                  <div className="space-y-1">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">上传进度 {uploadProgress}%</p>
+                  </div>
+                )}
+                {episodeForm.videoAssetId.trim() && (
+                  <div className="relative rounded-md border bg-muted/30 px-3 py-2 pr-8 text-xs">
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={clearEpisodeVideo}
+                      title="移除视频，重新上传"
+                      aria-label="移除视频"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="font-medium text-muted-foreground">视频 ID</div>
+                    <div className="mt-0.5 break-all font-mono">{episodeForm.videoAssetId}</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEpisodeDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setEpisodeDialogOpen(false)}
+              disabled={savingEpisode || uploading}
+            >
               取消
             </Button>
-            <Button onClick={saveEpisodeFromDialog}>保存</Button>
+            <Button onClick={() => void saveEpisodeFromDialog()} disabled={savingEpisode || uploading}>
+              {savingEpisode ? "保存中..." : "保存"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

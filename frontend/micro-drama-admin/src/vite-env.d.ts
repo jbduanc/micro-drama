@@ -10,6 +10,8 @@ interface ImportMetaEnv {
    * 未设置时默认 `/content-api`（由网关或同域反代转发到 content）。
    */
   readonly VITE_CONTENT_API_BASE?: string
+  readonly VITE_VIDEO_API_BASE?: string
+  readonly VITE_VIDEO_API_TARGET?: string
 }
 
 // 让 TypeScript 识别 CSS 文件

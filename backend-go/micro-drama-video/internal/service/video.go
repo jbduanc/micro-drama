@@ -113,8 +113,16 @@ type CompleteUploadOutput struct {
 	TranscodeTaskID string `json:"transcodeTaskId,omitempty"`
 }
 
-// CompleteUpload 前端直传 OSS 成功后调用：校验对象 → 落库 → 发 Kafka 通知转码。
+// CompleteUpload 直传 OSS 后的完成回调（与 NotifyTranscode 相同逻辑，保留兼容旧客户端）。
 func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInput) (*CompleteUploadOutput, error) {
+	return s.NotifyTranscode(ctx, in)
+}
+
+// NotifyTranscodeInput 通知转码（管理端保存剧集时调用）：校验 OSS → 落库 → Kafka → 转码任务。
+type NotifyTranscodeInput = CompleteUploadInput
+
+// NotifyTranscode 校验原片已上传 OSS，写入 video_asset 并发送 Kafka 触发转码。
+func (s *VideoService) NotifyTranscode(ctx context.Context, in *NotifyTranscodeInput) (*CompleteUploadOutput, error) {
 	if in == nil {
 		return nil, fmt.Errorf("invalid request")
 	}
@@ -144,21 +152,34 @@ func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInp
 		etag = strings.TrimSpace(in.Etag)
 	}
 
-	s.log.Info("upload complete started",
+	s.log.Info("notify transcode started",
 		zap.String("videoId", videoID),
 		zap.String("fileKey", fileKey),
 		zap.Int64("sizeBytes", size),
 	)
 
-	if err := s.repo.CreateVideoAsset(ctx, repository.CreateVideoAssetParams{
-		ID:        videoID,
-		DramaID:   &dramaID,
-		EpisodeID: &episodeID,
-		RawPath:   fileKey,
-		SizeBytes: size,
-	}); err != nil {
-		s.log.Error("insert video_asset failed", zap.String("videoId", videoID), zap.Error(err))
-		return nil, fmt.Errorf("insert video_asset: %w", err)
+	asset, err := s.repo.GetVideoAssetByID(ctx, videoID)
+	if err != nil && !errors.Is(err, repository.ErrVideoNotFound) {
+		return nil, err
+	}
+	if asset == nil {
+		if err := s.repo.CreateVideoAsset(ctx, repository.CreateVideoAssetParams{
+			ID:        videoID,
+			DramaID:   &dramaID,
+			EpisodeID: &episodeID,
+			RawPath:   fileKey,
+			SizeBytes: size,
+		}); err != nil {
+			s.log.Error("insert video_asset failed", zap.String("videoId", videoID), zap.Error(err))
+			return nil, fmt.Errorf("insert video_asset: %w", err)
+		}
+	} else if asset.Status == model.VideoStatusReady {
+		s.log.Info("notify transcode skipped: video already ready", zap.String("videoId", videoID))
+		return &CompleteUploadOutput{
+			VideoID:         videoID,
+			SourceObjectKey: fileKey,
+			SourceEtag:      etag,
+		}, nil
 	}
 
 	outputPath := storage.BuildHLSKey(s.cfg.OSS.HLSPrefix, dramaID, episodeID)
@@ -186,7 +207,7 @@ func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInp
 		return nil, fmt.Errorf("insert transcode_task: %w", err)
 	}
 
-	s.log.Info("upload complete finished",
+	s.log.Info("notify transcode finished",
 		zap.String("videoId", videoID),
 		zap.String("transcodeTaskId", taskID),
 		zap.String("expectedHlsPath", outputPath),
@@ -198,6 +219,82 @@ func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInp
 		SourceEtag:      etag,
 		TranscodeTaskID: taskID,
 	}, nil
+}
+
+// --- 批量删除视频 ---
+
+type DeleteVideoItem struct {
+	VideoID string
+	FileKey string // 资产未落库时用于删除 OSS 原片
+}
+
+type DeleteVideosInput struct {
+	Items  []DeleteVideoItem
+	UserID string
+}
+
+type DeleteVideosOutput struct {
+	Deleted []string `json:"deleted"`
+	Failed  []string `json:"failed,omitempty"`
+}
+
+// DeleteVideos 批量删除视频：OSS 原片/HLS + 数据库记录。
+func (s *VideoService) DeleteVideos(ctx context.Context, in *DeleteVideosInput) (*DeleteVideosOutput, error) {
+	if in == nil || len(in.Items) == 0 {
+		return nil, fmt.Errorf("items are required")
+	}
+	_ = in.UserID
+
+	ids := make([]string, 0, len(in.Items))
+	fileKeyByID := make(map[string]string, len(in.Items))
+	for _, it := range in.Items {
+		id := strings.TrimSpace(it.VideoID)
+		if id == "" {
+			continue
+		}
+		ids = append(ids, id)
+		if k := strings.TrimSpace(it.FileKey); k != "" {
+			fileKeyByID[id] = k
+		}
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("videoId is required in items")
+	}
+
+	assets, err := s.repo.ListVideoAssetsByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	assetByID := make(map[string]*model.VideoAsset, len(assets))
+	for _, a := range assets {
+		assetByID[a.ID] = a
+	}
+
+	out := &DeleteVideosOutput{Deleted: []string{}, Failed: []string{}}
+	for _, id := range ids {
+		if a, ok := assetByID[id]; ok {
+			keys := []string{a.RawPath}
+			if p := s.resolveHLSPath(a); p != "" && !strings.HasPrefix(strings.ToLower(p), "http") {
+				keys = append(keys, p)
+			}
+			for _, key := range keys {
+				if err := s.oss.RemoveObject(ctx, key); err != nil {
+					s.log.Warn("oss remove failed", zap.String("objectKey", key), zap.Error(err))
+				}
+			}
+		} else if key := fileKeyByID[id]; key != "" {
+			if err := s.oss.RemoveObject(ctx, key); err != nil {
+				s.log.Warn("oss remove failed", zap.String("objectKey", key), zap.Error(err))
+			}
+		}
+	}
+
+	if err := s.repo.DeleteVideoAssetsByIDs(ctx, ids); err != nil {
+		return nil, fmt.Errorf("delete video_asset: %w", err)
+	}
+	out.Deleted = ids
+	s.log.Info("videos deleted", zap.Strings("videoIds", ids))
+	return out, nil
 }
 
 // --- 播放鉴权 ---

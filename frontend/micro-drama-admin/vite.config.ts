@@ -15,6 +15,11 @@ export default defineConfig(() => {
     process.env.CONTENT_API_TARGET ??
     "http://127.0.0.1:6002"
 
+  const videoApiTarget =
+    process.env.VITE_VIDEO_API_TARGET ??
+    process.env.VIDEO_API_TARGET ??
+    "http://127.0.0.1:8080"
+
   return {
     plugins: [react()],
     server: {
@@ -40,6 +45,13 @@ export default defineConfig(() => {
           target: contentApiTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/content-api/, "") || "/",
+        },
+
+        // 视频上传/播放/转码：micro-drama-video
+        "/video-api": {
+          target: videoApiTarget,
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/video-api/, "") || "/",
         },
       },
     },

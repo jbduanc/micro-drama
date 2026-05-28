@@ -23,6 +23,8 @@ func Register(r *gin.Engine, log *zap.Logger, svc *service.VideoService) {
 		// 直传流程：先申请预签名 URL → 前端 PUT 到 OSS → 再调完成接口发 Kafka
 		v1.POST("/upload-url", uploadURLHandler(log, svc))
 		v1.POST("/upload-complete", uploadCompleteHandler(log, svc))
+		v1.POST("/notify-transcode", notifyTranscodeHandler(log, svc))
+		v1.POST("/delete", deleteVideosHandler(log, svc))
 		v1.GET("/play", playHandler(log, svc))
 	}
 }
@@ -93,6 +95,73 @@ func uploadCompleteHandler(log *zap.Logger, svc *service.VideoService) gin.Handl
 		})
 		if err != nil {
 			log.Error("upload-complete", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, response.Fail[any](500, err.Error()))
+			return
+		}
+		c.JSON(http.StatusOK, response.OK(out))
+	}
+}
+
+// notifyTranscodeHandler POST /v1/video/notify-transcode
+func notifyTranscodeHandler(log *zap.Logger, svc *service.VideoService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req uploadCompleteRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, response.Fail[any](400, "videoId, fileKey, dramaId and episodeId are required"))
+			return
+		}
+		log.Info("http notify-transcode request",
+			zap.String("videoId", req.VideoID),
+			zap.String("fileKey", req.FileKey),
+		)
+		out, err := svc.NotifyTranscode(c.Request.Context(), &service.NotifyTranscodeInput{
+			VideoID:   req.VideoID,
+			FileKey:   req.FileKey,
+			DramaID:   req.DramaID,
+			EpisodeID: req.EpisodeID,
+			Etag:      req.Etag,
+			SizeBytes: req.SizeBytes,
+			UserID:    c.GetHeader("X-User-Id"),
+		})
+		if err != nil {
+			log.Error("notify-transcode", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, response.Fail[any](500, err.Error()))
+			return
+		}
+		c.JSON(http.StatusOK, response.OK(out))
+	}
+}
+
+type deleteVideosRequest struct {
+	Items []deleteVideoItemRequest `json:"items" binding:"required,min=1,dive"`
+}
+
+type deleteVideoItemRequest struct {
+	VideoID string `json:"videoId" binding:"required"`
+	FileKey string `json:"fileKey"`
+}
+
+// deleteVideosHandler POST /v1/video/delete
+func deleteVideosHandler(log *zap.Logger, svc *service.VideoService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req deleteVideosRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, response.Fail[any](400, "items with videoId are required"))
+			return
+		}
+		items := make([]service.DeleteVideoItem, 0, len(req.Items))
+		for _, it := range req.Items {
+			items = append(items, service.DeleteVideoItem{
+				VideoID: it.VideoID,
+				FileKey: it.FileKey,
+			})
+		}
+		out, err := svc.DeleteVideos(c.Request.Context(), &service.DeleteVideosInput{
+			Items:  items,
+			UserID: c.GetHeader("X-User-Id"),
+		})
+		if err != nil {
+			log.Error("delete videos", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, response.Fail[any](500, err.Error()))
 			return
 		}

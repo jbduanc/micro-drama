@@ -83,6 +83,15 @@ func (o *OSS) StatObject(ctx context.Context, objectKey string) (size int64, eta
 	return info.Size, info.ETag, nil
 }
 
+// RemoveObject 删除桶内指定 objectKey（忽略不存在错误由调用方处理）。
+func (o *OSS) RemoveObject(ctx context.Context, objectKey string) error {
+	objectKey = strings.TrimPrefix(strings.TrimSpace(objectKey), "/")
+	if objectKey == "" {
+		return nil
+	}
+	return o.cli.RemoveObject(ctx, o.bucket, objectKey, minio.RemoveObjectOptions{})
+}
+
 // PresignGet 生成限时有效的 GET 预签名 URL。
 //
 // 前端/播放器用此 URL 直接访问 OSS，无需把 AccessKey 暴露给浏览器。
