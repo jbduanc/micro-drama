@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -56,27 +57,38 @@ func (r *VideoRepo) Close() {
 
 // CreateVideoAssetParams 插入 video_asset 所需字段。
 type CreateVideoAssetParams struct {
-	ID        string  // 与 OSS 目录、Kafka videoId 一致
-	DramaID   *string // 可选
-	EpisodeID *string // 可选
-	RawPath   string  // OSS object key
-	SizeBytes int64
+	ID            string
+	DramaID       *string
+	EpisodeID     *string
+	RawPath       string
+	SizeBytes     int64
+	CallbackToken *string // 仅 UPLOADING 预创建时设置
 }
 
 // CreateVideoAsset 上传 OSS 成功后写入视频资产表，状态 UPLOADED。
 func (r *VideoRepo) CreateVideoAsset(ctx context.Context, p CreateVideoAssetParams) error {
+	return r.createVideoAssetWithStatus(ctx, p, model.VideoStatusUploaded)
+}
+
+// CreatePendingVideoAsset 签发 STS 时预创建资产，状态 UPLOADING。
+func (r *VideoRepo) CreatePendingVideoAsset(ctx context.Context, p CreateVideoAssetParams) error {
+	return r.createVideoAssetWithStatus(ctx, p, model.VideoStatusUploading)
+}
+
+func (r *VideoRepo) createVideoAssetWithStatus(ctx context.Context, p CreateVideoAssetParams, status string) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO video_asset (
-			id, drama_id, episode_id, raw_path, size_bytes, status, created_at, updated_at
+			id, drama_id, episode_id, raw_path, size_bytes, status, callback_token, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, NOW(), NOW()
+			$1, $2, $3, $4, $5, $6, $7, NOW(), NOW()
 		)`,
 		p.ID,
 		nullableUUID(p.DramaID),
 		nullableUUID(p.EpisodeID),
 		p.RawPath,
 		p.SizeBytes,
-		model.VideoStatusUploaded,
+		status,
+		nullableString(p.CallbackToken),
 	)
 	if err != nil {
 		return err
@@ -141,6 +153,154 @@ func (r *VideoRepo) CreateTranscodeTask(ctx context.Context, p CreateTranscodeTa
 
 // ErrVideoNotFound 播放鉴权时视频不存在。
 var ErrVideoNotFound = errors.New("video not found")
+
+// ErrVideoAssetConflict 同一 raw_path 已存在其他视频记录。
+var ErrVideoAssetConflict = errors.New("video asset conflict")
+
+// ErrCallbackTokenInvalid 一次性回调 token 无效或已使用。
+var ErrCallbackTokenInvalid = errors.New("invalid or expired callback token")
+
+// ConsumeCallbackToken 校验并消费一次性 token（原子清空，仅 UPLOADING 状态可用）。
+func (r *VideoRepo) ConsumeCallbackToken(ctx context.Context, videoID, token string) (*model.VideoAsset, error) {
+	videoID = strings.TrimSpace(videoID)
+	token = strings.TrimSpace(token)
+	if videoID == "" || token == "" {
+		return nil, ErrCallbackTokenInvalid
+	}
+	row := r.pool.QueryRow(ctx, `
+		UPDATE video_asset
+		SET callback_token = NULL, updated_at = NOW()
+		WHERE id = $1 AND callback_token = $2 AND status = $3
+		RETURNING
+			id, drama_id, episode_id, raw_path, hls_path, cover_path, subtitle_path,
+			duration, size_bytes, resolution, status, created_at, updated_at`,
+		videoID,
+		token,
+		model.VideoStatusUploading,
+	)
+	asset, err := scanVideoAssetRow(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrCallbackTokenInvalid
+	}
+	if err != nil {
+		return nil, err
+	}
+	r.log.Debug("callback token consumed", zap.String("videoId", videoID))
+	return asset, nil
+}
+
+// GetVideoAssetByRawPath 按原片 OSS 路径查询（OSS 事件回调用）。
+func (r *VideoRepo) GetVideoAssetByRawPath(ctx context.Context, rawPath string) (*model.VideoAsset, error) {
+	rawPath = strings.TrimPrefix(strings.TrimSpace(rawPath), "/")
+	row := r.pool.QueryRow(ctx, `
+		SELECT
+			id, drama_id, episode_id, raw_path, hls_path, cover_path, subtitle_path,
+			duration, size_bytes, resolution, status, created_at, updated_at
+		FROM video_asset
+		WHERE raw_path = $1
+		ORDER BY created_at DESC
+		LIMIT 1`,
+		rawPath,
+	)
+	var a model.VideoAsset
+	var dramaID, episodeID, hlsPath, coverPath, subtitlePath, resolution *string
+	var duration *int
+	var sizeBytes *int64
+	err := row.Scan(
+		&a.ID,
+		&dramaID,
+		&episodeID,
+		&a.RawPath,
+		&hlsPath,
+		&coverPath,
+		&subtitlePath,
+		&duration,
+		&sizeBytes,
+		&resolution,
+		&a.Status,
+		&a.CreatedAt,
+		&a.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrVideoNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	a.DramaID = dramaID
+	a.EpisodeID = episodeID
+	a.HlsPath = hlsPath
+	a.CoverPath = coverPath
+	a.SubtitlePath = subtitlePath
+	a.Resolution = resolution
+	a.Duration = duration
+	a.SizeBytes = sizeBytes
+	return &a, nil
+}
+
+// MarkTranscodeSuccess 转码完成：更新 video_asset 为 READY 并回填 hls_path，转码任务 SUCCESS。
+func (r *VideoRepo) MarkTranscodeSuccess(ctx context.Context, videoID, hlsPath string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+		UPDATE video_asset
+		SET status = $2, hls_path = $3, updated_at = NOW()
+		WHERE id = $1`,
+		videoID,
+		model.VideoStatusReady,
+		hlsPath,
+	)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `
+		UPDATE transcode_task
+		SET status = $2, updated_at = NOW()
+		WHERE video_asset_id = $1`,
+		videoID,
+		model.TaskStatusSuccess,
+	)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// MarkTranscodeFailed 转码失败：video_asset FAILED，转码任务 FAILED。
+func (r *VideoRepo) MarkTranscodeFailed(ctx context.Context, videoID, errMsg string) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+		UPDATE video_asset
+		SET status = $2, updated_at = NOW()
+		WHERE id = $1`,
+		videoID,
+		model.VideoStatusFailed,
+	)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `
+		UPDATE transcode_task
+		SET status = $2, error_msg = $3, updated_at = NOW()
+		WHERE video_asset_id = $1`,
+		videoID,
+		model.TaskStatusFailed,
+		errMsg,
+	)
+	if err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
 
 // ErrVideoNotReady 视频尚未转码完成或 hls_path 为空。
 var ErrVideoNotReady = errors.New("video not ready for playback")
@@ -274,4 +434,46 @@ func nullableUUID(s *string) any {
 		return nil
 	}
 	return *s
+}
+
+// nullableString 将空字符串指针转为 nil。
+func nullableString(s *string) any {
+	if s == nil || strings.TrimSpace(*s) == "" {
+		return nil
+	}
+	return strings.TrimSpace(*s)
+}
+
+func scanVideoAssetRow(row pgx.Row) (*model.VideoAsset, error) {
+	var a model.VideoAsset
+	var dramaID, episodeID, hlsPath, coverPath, subtitlePath, resolution *string
+	var duration *int
+	var sizeBytes *int64
+	err := row.Scan(
+		&a.ID,
+		&dramaID,
+		&episodeID,
+		&a.RawPath,
+		&hlsPath,
+		&coverPath,
+		&subtitlePath,
+		&duration,
+		&sizeBytes,
+		&resolution,
+		&a.Status,
+		&a.CreatedAt,
+		&a.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	a.DramaID = dramaID
+	a.EpisodeID = episodeID
+	a.HlsPath = hlsPath
+	a.CoverPath = coverPath
+	a.SubtitlePath = subtitlePath
+	a.Resolution = resolution
+	a.Duration = duration
+	a.SizeBytes = sizeBytes
+	return &a, nil
 }

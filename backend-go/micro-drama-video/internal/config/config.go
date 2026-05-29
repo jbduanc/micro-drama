@@ -179,6 +179,9 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	c.Kafka.Enabled = v.GetBool("kafka_enabled")
 	c.Kafka.Brokers = splitCSV(v.GetString("kafka_brokers"))
 	c.Kafka.TopicUploadCompleted = v.GetString("kafka_topic_upload_completed")
+	c.Kafka.TopicTranscodeCompleted = v.GetString("kafka_topic_transcode_completed")
+	c.Kafka.TopicTranscodeFailed = v.GetString("kafka_topic_transcode_failed")
+	c.Kafka.ConsumerGroup = v.GetString("kafka_consumer_group")
 
 	c.OSS.Endpoint = v.GetString("oss_endpoint")
 	c.OSS.AccessKey = v.GetString("oss_access_key")
@@ -189,6 +192,12 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	c.OSS.UploadPrefix = strings.Trim(v.GetString("oss_upload_prefix"), "/")
 	c.OSS.UploadPresignExpireSeconds = v.GetInt("oss_upload_presign_expire_seconds")
 	c.OSS.HLSPrefix = strings.Trim(v.GetString("oss_hls_prefix"), "/")
+	c.OSS.STSRoleARN = v.GetString("oss_sts_role_arn")
+	c.OSS.STSRegion = v.GetString("oss_sts_region")
+	c.OSS.STSSessionName = v.GetString("oss_sts_session_name")
+	c.OSS.STSDurationSeconds = v.GetInt("oss_sts_duration_seconds")
+	c.OSS.EventCallbackSecret = v.GetString("oss_event_callback_secret")
+	c.OSS.UploadCallbackBaseURL = strings.TrimRight(v.GetString("oss_upload_callback_base_url"), "/")
 
 	c.Playback.URLExpireSeconds = v.GetInt("playback_url_expire_seconds")
 	c.Playback.HLSKeyTemplate = v.GetString("playback_hls_key_template")
@@ -224,8 +233,20 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	if c.OSS.UploadPrefix == "" {
 		c.OSS.UploadPrefix = "raw"
 	}
+	if c.OSS.STSDurationSeconds <= 0 {
+		c.OSS.STSDurationSeconds = 3600
+	}
 	if c.Kafka.TopicUploadCompleted == "" {
 		c.Kafka.TopicUploadCompleted = "content.video.upload_completed"
+	}
+	if c.Kafka.TopicTranscodeCompleted == "" {
+		c.Kafka.TopicTranscodeCompleted = "video.transcode.completed"
+	}
+	if c.Kafka.TopicTranscodeFailed == "" {
+		c.Kafka.TopicTranscodeFailed = "video.transcode.failed"
+	}
+	if c.Kafka.ConsumerGroup == "" {
+		c.Kafka.ConsumerGroup = "micro-drama-video"
 	}
 
 	if c.DB.DSN() == "" {
@@ -268,9 +289,12 @@ type Config struct {
 	}
 
 	Kafka struct {
-		Enabled              bool
-		Brokers              []string
-		TopicUploadCompleted string
+		Enabled                 bool
+		Brokers                 []string
+		TopicUploadCompleted    string
+		TopicTranscodeCompleted string
+		TopicTranscodeFailed    string
+		ConsumerGroup           string
 	}
 
 	OSS struct {
@@ -283,6 +307,12 @@ type Config struct {
 		UploadPrefix               string // 原片前缀，默认 raw → raw/{dramaId}/{episodeId}.mp4
 		UploadPresignExpireSeconds int
 		HLSPrefix                  string // HLS 前缀，默认 hls
+		STSRoleARN                 string // RAM 角色 ARN，STS 直传必填
+		STSRegion                  string // STS API 区域，默认同 oss_region
+		STSSessionName             string
+		STSDurationSeconds         int
+		EventCallbackSecret        string // 可选：MNS/事件通知全局密钥（上传回调已改用一次性 token）
+		UploadCallbackBaseURL      string // 公网 video-api 根路径，如 https://api.xxx.com/video-api
 	}
 
 	Playback struct {

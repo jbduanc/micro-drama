@@ -5,7 +5,7 @@ import { Pencil, Play, Plus, Trash2, Upload, X } from "lucide-react"
 
 import { dramaService } from "@/api/drama/service"
 import type { DramaEpisode, MicroDramaDTO } from "@/api/drama/types"
-import { uploadFileToOSS, videoService } from "@/api/video/service"
+import { uploadFileWithSts, videoService } from "@/api/video/service"
 import type { DeleteVideoItem } from "@/api/video/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -259,19 +259,19 @@ export default function DramaEditPage() {
     setUploadProgress(0)
     try {
       const contentType = file.type || "video/mp4"
-      const { videoId, uploadUrl, fileKey } = await videoService.createUploadUrl({
+      const sts = await videoService.fetchSts({
         dramaId,
         episodeId,
         contentType,
       })
-      await uploadFileToOSS(file, uploadUrl, contentType, setUploadProgress)
+      await uploadFileWithSts(file, sts, setUploadProgress)
       setEpisodeForm((f) => ({
         ...f,
-        videoAssetId: videoId,
-        videoFileKey: fileKey,
+        videoAssetId: sts.videoId,
+        videoFileKey: sts.fileKey,
       }))
       setUploadProgress(100)
-      toast.success("视频已上传至 OSS")
+      toast.success("视频已上传至 OSS，转码将由 OSS 事件自动触发")
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : "视频上传失败")
@@ -336,30 +336,9 @@ export default function DramaEditPage() {
 
     const prevEp = editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
     const finalVideoId = episodeForm.videoAssetId.trim()
-    const finalFileKey = episodeForm.videoFileKey.trim()
-    const dramaId = resolveDramaId()
-
-    if (finalVideoId && !finalFileKey && finalVideoId !== originalVideoAssetId) {
-      toast.error("视频文件信息缺失，请重新选择并上传视频")
-      return
-    }
 
     setSavingEpisode(true)
     try {
-      if (finalVideoId && finalFileKey) {
-        if (!dramaId) {
-          toast.error("请先保存短剧基础信息后再提交剧集视频转码")
-          return
-        }
-        const episodeId = resolveEpisodeIdForUpload(episodeNum, prevEp?.id)
-        await videoService.notifyTranscode({
-          videoId: finalVideoId,
-          fileKey: finalFileKey,
-          dramaId,
-          episodeId,
-        })
-      }
-
       const toDelete = collectVideosToDeleteOnSave(finalVideoId)
       if (toDelete.length > 0) {
         await videoService.deleteVideos(toDelete)
@@ -390,7 +369,7 @@ export default function DramaEditPage() {
         editingEpisodeIndex == null
           ? "已添加剧集（未提交短剧）"
           : finalVideoId
-            ? "已更新剧集，转码任务已提交"
+            ? "已更新剧集（转码由 OSS 事件自动触发）"
             : "已更新剧集（未提交短剧）",
       )
     } catch (e) {
@@ -728,7 +707,7 @@ export default function DramaEditPage() {
           <DialogHeader>
             <DialogTitle>{editingEpisodeIndex == null ? "新增剧集" : "编辑剧集"}</DialogTitle>
             <DialogDescription>
-              选择本地视频直传 OSS；保存剧集时将通知转码。更换视频后旧视频 ID 会自动清理。
+              选择本地视频：先获取 STS 凭证，再直传 OSS Bucket 域名；上传完成后由 OSS 事件自动触发转码，无需手动回调。
             </DialogDescription>
           </DialogHeader>
 

@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap"
 
 	"micro-drama-video/internal/config"
-	"micro-drama-video/internal/events"
 	"micro-drama-video/internal/kafka"
 	"micro-drama-video/internal/model"
 	"micro-drama-video/internal/repository"
@@ -121,7 +120,7 @@ func (s *VideoService) CompleteUpload(ctx context.Context, in *CompleteUploadInp
 // NotifyTranscodeInput 通知转码（管理端保存剧集时调用）：校验 OSS → 落库 → Kafka → 转码任务。
 type NotifyTranscodeInput = CompleteUploadInput
 
-// NotifyTranscode 校验原片已上传 OSS，写入 video_asset 并发送 Kafka 触发转码。
+// NotifyTranscode 校验原片已上传 OSS，写入 video_asset 并发送 Kafka 触发转码（兼容手动回调）。
 func (s *VideoService) NotifyTranscode(ctx context.Context, in *NotifyTranscodeInput) (*CompleteUploadOutput, error) {
 	if in == nil {
 		return nil, fmt.Errorf("invalid request")
@@ -133,92 +132,10 @@ func (s *VideoService) NotifyTranscode(ctx context.Context, in *NotifyTranscodeI
 	if videoID == "" || fileKey == "" || dramaID == "" || episodeID == "" {
 		return nil, fmt.Errorf("videoId, fileKey, dramaId and episodeId are required")
 	}
-	_ = in.UserID // TODO: JWT 鉴权
+	_ = in.UserID
 
-	expectedKey := storage.BuildRawKey(s.cfg.OSS.UploadPrefix, dramaID, episodeID)
-	if fileKey != expectedKey {
-		return nil, fmt.Errorf("fileKey mismatch, expected %s", expectedKey)
-	}
-
-	size, etag, err := s.oss.StatObject(ctx, fileKey)
-	if err != nil {
-		s.log.Error("oss stat object failed", zap.String("fileKey", fileKey), zap.Error(err))
-		return nil, fmt.Errorf("object not found in storage, upload may have failed")
-	}
-	if in.SizeBytes > 0 {
-		size = in.SizeBytes
-	}
-	if strings.TrimSpace(in.Etag) != "" {
-		etag = strings.TrimSpace(in.Etag)
-	}
-
-	s.log.Info("notify transcode started",
-		zap.String("videoId", videoID),
-		zap.String("fileKey", fileKey),
-		zap.Int64("sizeBytes", size),
-	)
-
-	asset, err := s.repo.GetVideoAssetByID(ctx, videoID)
-	if err != nil && !errors.Is(err, repository.ErrVideoNotFound) {
-		return nil, err
-	}
-	if asset == nil {
-		if err := s.repo.CreateVideoAsset(ctx, repository.CreateVideoAssetParams{
-			ID:        videoID,
-			DramaID:   &dramaID,
-			EpisodeID: &episodeID,
-			RawPath:   fileKey,
-			SizeBytes: size,
-		}); err != nil {
-			s.log.Error("insert video_asset failed", zap.String("videoId", videoID), zap.Error(err))
-			return nil, fmt.Errorf("insert video_asset: %w", err)
-		}
-	} else if asset.Status == model.VideoStatusReady {
-		s.log.Info("notify transcode skipped: video already ready", zap.String("videoId", videoID))
-		return &CompleteUploadOutput{
-			VideoID:         videoID,
-			SourceObjectKey: fileKey,
-			SourceEtag:      etag,
-		}, nil
-	}
-
-	outputPath := storage.BuildHLSKey(s.cfg.OSS.HLSPrefix, dramaID, episodeID)
-
-	ev := &events.VideoUploadCompletedEvent{
-		VideoID:         videoID,
-		DramaID:         &dramaID,
-		EpisodeID:       &episodeID,
-		SourceObjectKey: fileKey,
-		SourceEtag:      etag,
-		UploadedAt:      time.Now().UnixMilli(),
-	}
-	if err := s.kafka.PublishUploadCompleted(ev); err != nil {
-		s.log.Error("kafka publish failed", zap.String("videoId", videoID), zap.Error(err))
-		return nil, fmt.Errorf("kafka publish: %w", err)
-	}
-
-	taskID, err := s.repo.CreateTranscodeTask(ctx, repository.CreateTranscodeTaskParams{
-		VideoAssetID: videoID,
-		InputPath:    fileKey,
-		OutputPath:   outputPath,
-	})
-	if err != nil {
-		s.log.Error("insert transcode_task failed", zap.String("videoId", videoID), zap.Error(err))
-		return nil, fmt.Errorf("insert transcode_task: %w", err)
-	}
-
-	s.log.Info("notify transcode finished",
-		zap.String("videoId", videoID),
-		zap.String("transcodeTaskId", taskID),
-		zap.String("expectedHlsPath", outputPath),
-	)
-
-	return &CompleteUploadOutput{
-		VideoID:         videoID,
-		SourceObjectKey: fileKey,
-		SourceEtag:      etag,
-		TranscodeTaskID: taskID,
-	}, nil
+	s.log.Info("notify transcode started", zap.String("videoId", videoID), zap.String("fileKey", fileKey))
+	return s.triggerTranscode(ctx, videoID, fileKey, dramaID, episodeID, in.Etag, in.SizeBytes)
 }
 
 // --- 批量删除视频 ---

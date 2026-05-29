@@ -5,6 +5,7 @@ import "time"
 
 // 视频资产状态，对应 video_asset.status 字段。
 const (
+	VideoStatusUploading   = "UPLOADING" // 已签发 STS，等待前端直传 OSS
 	VideoStatusUploaded    = "UPLOADED"
 	VideoStatusTranscoding = "TRANSCODING"
 	VideoStatusReady       = "READY"
@@ -32,6 +33,7 @@ type VideoAsset struct {
 	SizeBytes    *int64
 	Resolution   *string
 	Status       string
+	CallbackToken *string // 一次性 OSS 回调 token，用后清空
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

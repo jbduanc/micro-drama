@@ -66,6 +66,23 @@ func main() {
 	// ---------- 3. 业务层（Service）与 HTTP 层（Handler）----------
 	svc := service.NewVideoService(log, cfg, ossCli, producer, repo)
 
+	log.Info("initializing kafka consumer for transcode results")
+	consumer, err := kafka.NewConsumer(log, cfg)
+	if err != nil {
+		log.Fatal("startup failed at kafka consumer", zap.Error(err))
+	}
+	if consumer != nil {
+		consumer.RegisterHandlers(svc.HandleTranscodeCompleted, svc.HandleTranscodeFailed)
+		defer consumer.Close()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			if err := consumer.Run(ctx); err != nil && ctx.Err() == nil {
+				log.Error("kafka consumer stopped", zap.Error(err))
+			}
+		}()
+	}
+
 	// Gin：Go 的 Web 框架，类似 Spring MVC。
 	gin.SetMode(gin.ReleaseMode) // 关闭 debug 路由表等开发输出
 	r := gin.New()

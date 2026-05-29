@@ -1,10 +1,12 @@
 import { videoHttp } from "@/api/videoHttp"
+import { uploadFileWithSts } from "@/api/video/ossStsUpload"
 import type {
   DeleteVideoItem,
   DeleteVideosData,
   NotifyTranscodeData,
   PlayAuthData,
   Result,
+  StsUploadData,
   UploadUrlData,
 } from "./types"
 
@@ -16,6 +18,17 @@ function unwrap<T>(res: Result<T>): T {
 }
 
 export const videoService = {
+  /** 获取阿里云 STS 临时凭证（上传前调用） */
+  async fetchSts(payload: {
+    dramaId: string
+    episodeId: string
+    contentType?: string
+  }): Promise<StsUploadData> {
+    const res = await videoHttp.post<Result<StsUploadData>>("/v1/video/sts", payload)
+    return unwrap(res.data)
+  },
+
+  /** @deprecated 预签名 PUT，请使用 fetchSts + uploadFileWithSts（ali-oss） */
   async createUploadUrl(payload: {
     dramaId: string
     episodeId: string
@@ -25,6 +38,7 @@ export const videoService = {
     return unwrap(res.data)
   },
 
+  /** 手动通知转码（OSS 事件不可达时的兼容接口） */
   async notifyTranscode(payload: {
     videoId: string
     fileKey: string
@@ -52,6 +66,8 @@ export const videoService = {
     return unwrap(res.data)
   },
 }
+
+export { uploadFileWithSts }
 
 /** 直传 OSS（PUT 预签名 URL），支持上传进度 */
 export function uploadFileToOSS(
