@@ -58,6 +58,16 @@ func (s *Service) HandleUploadCompleted(ctx context.Context, ev *events.VideoUpl
 		})
 		return err
 	}
+	if info, err := os.Stat(inputPath); err != nil || info.Size() < 1024 {
+		detail := "downloaded file missing or too small (<1KB), upload may be incomplete"
+		if err != nil {
+			detail = err.Error()
+		}
+		_ = s.prod.PublishTranscodeFailed(&events.VideoTranscodeFailedEvent{
+			VideoID: ev.VideoID, Reason: "invalid_input", Detail: detail,
+		})
+		return fmt.Errorf("%s", detail)
+	}
 
 	outDir := filepath.Join(workDir, "hls")
 	masterFile, vars, err := transcode.TranscodeToHLS(ctx, s.log, s.cfg, inputPath, outDir)
