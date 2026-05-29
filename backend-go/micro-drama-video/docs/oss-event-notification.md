@@ -138,8 +138,9 @@ transcoder → READY → 可播放
 |------|------|
 | 上传请求 `net::ERR_CONNECTION_CLOSED`，主机名像 `bucket.bucket.ap-southeast-1...` | `oss_region` 应写 **`oss-ap-southeast-1`**，不要写 `bucket名.ap-southeast-1`；正确域名：`https://{bucket}.oss-ap-southeast-1.aliyuncs.com/...` |
 | invalid or expired callback token | token 已用过、或没先调 `/sts`；重新上传 |
-| 上传成功但不转码 | `oss_upload_callback_base_url` 是否公网可达 |
-| CallbackFailed | video-api 是否返回 `{"Status":"Ok"}` |
+| 上传成功但不转码 | 日志无 `http oss-event`：检查 Consul `oss_upload_callback_base_url`、网关是否放行 `POST .../oss-event`（无需登录）；管理端上传后会自动调 `notify-transcode` 兜底 |
+| CallbackFailed / 浏览器 `Error status : 502` | OSS 回调 `callbackUrl` 被网关 502；管理端已改为上传后 `notify-transcode`，可不在 ali-oss 里带 callback。若仍用 OSS 回调，需网关放行 `POST /video-api/v1/video/oss-event` 且 upstream 正常 |
+| CallbackFailed（旧） | video-api 是否返回 `{"Status":"Ok"}` |
 | column callback_token does not exist | 执行 `migrations/001_video_asset_callback_token.sql` |
 
 ---

@@ -265,13 +265,19 @@ export default function DramaEditPage() {
         contentType,
       })
       await uploadFileWithSts(file, sts, setUploadProgress)
+      await videoService.notifyTranscode({
+        videoId: sts.videoId,
+        fileKey: sts.fileKey,
+        dramaId,
+        episodeId,
+      })
       setEpisodeForm((f) => ({
         ...f,
         videoAssetId: sts.videoId,
         videoFileKey: sts.fileKey,
       }))
       setUploadProgress(100)
-      toast.success("视频已上传至 OSS，转码将由 OSS 事件自动触发")
+      toast.success("视频已上传，转码任务已提交")
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : "视频上传失败")

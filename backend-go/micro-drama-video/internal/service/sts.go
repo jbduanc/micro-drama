@@ -95,11 +95,18 @@ func (s *VideoService) CreateSTSUploadCredentials(ctx context.Context, in *STSUp
 	}
 
 	expireSec := int64(s.cfg.OSS.STSDurationSeconds)
+	callbackURL := storage.BuildUploadCallbackURL(s.cfg, videoID, token)
+	if callbackURL == "" {
+		s.log.Warn("oss_upload_callback_base_url is empty; OSS upload callback disabled, rely on notify-transcode",
+			zap.String("videoId", videoID),
+		)
+	}
 	s.log.Info("sts credentials issued",
 		zap.String("videoId", videoID),
 		zap.String("fileKey", fileKey),
 		zap.String("dramaId", dramaID),
 		zap.String("episodeId", episodeID),
+		zap.Bool("callbackEnabled", callbackURL != ""),
 	)
 
 	return &STSUploadOutput{
@@ -113,6 +120,6 @@ func (s *VideoService) CreateSTSUploadCredentials(ctx context.Context, in *STSUp
 		Region:          region,
 		Bucket:          s.cfg.OSS.Bucket,
 		Endpoint:        storage.BuildBucketEndpoint(s.cfg),
-		CallbackURL:     storage.BuildUploadCallbackURL(s.cfg, videoID, callbackToken),
+		CallbackURL:     callbackURL,
 	}, nil
 }

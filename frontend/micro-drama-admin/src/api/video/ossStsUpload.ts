@@ -2,13 +2,23 @@ import OSS from "ali-oss"
 
 import type { StsUploadData } from "./types"
 
-/** 使用 STS + ali-oss SDK 直传至 OSS Bucket 自带域名；携带上传回调触发转码（无需 MNS 事件通知） */
+/** OSS 已存盘但回调 video-api 失败（常见网关 502）；文件在桶里，可由 notify-transcode 继续。 */
+export function isOssCallbackFailedError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false
+  const name = "name" in err ? String((err as { name?: string }).name) : ""
+  const msg = "message" in err ? String((err as { message?: string }).message) : String(err)
+  return name === "CallbackFailedError" || /callbackfailed/i.test(msg) || /error status\s*:\s*502/i.test(msg)
+}
+
+/**
+ * STS + ali-oss 分片直传。
+ * 不携带 OSS PutObject Callback：回调经公网网关易 502；上传成功后由 notify-transcode 触发转码。
+ */
 export async function uploadFileWithSts(
   file: File,
   sts: StsUploadData,
   onProgress?: (percent: number) => void,
 ): Promise<void> {
-  // 仅传 region + bucket，由 ali-oss 拼虚拟主机域名；勿再传含 bucket 的 endpoint，否则会重复拼接主机名。
   const client = new OSS({
     region: sts.region,
     accessKeyId: sts.accessKeyId,
@@ -33,18 +43,13 @@ export async function uploadFileWithSts(
     },
   }
 
-  // 新加坡等无 MNS 区域：在上传请求中携带 callback，OSS 服务器直调 video-api
-  if (sts.callbackUrl?.trim()) {
-    options.callback = {
-      url: sts.callbackUrl.trim(),
-      body:
-        "bucket=${bucket}&object=${object}&etag=${etag}&size=${size}&mimeType=${mimeType}&videoId=${x:videoId}",
-      contentType: "application/x-www-form-urlencoded",
-      customValue: {
-        videoId: sts.videoId,
-      },
+  try {
+    await client.multipartUpload(sts.fileKey, file, options)
+  } catch (err) {
+    if (isOssCallbackFailedError(err)) {
+      console.warn("[oss] upload callback failed (e.g. 502), object may already exist in bucket", err)
+      return
     }
+    throw err
   }
-
-  await client.multipartUpload(sts.fileKey, file, options)
 }
