@@ -297,8 +297,17 @@ export default function DramaEditPage() {
         videoAssetId: sts.videoId,
         videoFileKey: sts.fileKey,
       }))
+      if (editingEpisodeIndex != null) {
+        setEpisodes((prev) => {
+          const cloned = [...prev]
+          const current = cloned[editingEpisodeIndex]
+          if (!current) return prev
+          cloned[editingEpisodeIndex] = { ...current, videoAssetId: sts.videoId }
+          return cloned
+        })
+      }
       setUploadProgress(100)
-      toast.success("视频已上传，请点击确定保存剧集并提交转码")
+      toast.success("视频已上传，请点击「确定」保存剧集（将自动同步视频 ID）")
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : "视频上传失败")
@@ -307,10 +316,55 @@ export default function DramaEditPage() {
     }
   }
 
+  function buildDramaSavePayload(episodeList: DramaEpisode[] = episodes): MicroDramaDTO | null {
+    const title = form.title.trim()
+    if (!title) return null
+
+    const dramaUuid = resolveDramaId()
+    if (!dramaUuid) return null
+
+    const totalEpisodesNumber = form.totalEpisodes.trim() ? Number(form.totalEpisodes) : undefined
+    const priceNumber = form.price.trim() ? Number(form.price) : undefined
+    const sortNumber = form.sort.trim() ? Number(form.sort) : undefined
+
+    return {
+      id: dramaUuid,
+      title,
+      coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
+      description: form.description.trim() ? form.description.trim() : undefined,
+      totalEpisodes: totalEpisodesNumber ?? episodeList.length,
+      price: priceNumber,
+      status: Number(form.status) as 0 | 1,
+      sort: sortNumber,
+      episodes: episodeList.map((ep) => ({
+        ...(ep.id ? { id: ep.id } : {}),
+        episodeNum: ep.episodeNum,
+        title: ep.title,
+        videoAssetId: ep.videoAssetId?.trim() || undefined,
+        duration: ep.duration,
+        price: ep.price,
+      })),
+    }
+  }
+
+  /** 将当前页面剧集（含 videoAssetId）同步到 content 服务 */
+  async function persistDramaEpisodes(episodeList: DramaEpisode[] = episodes): Promise<void> {
+    const payload = buildDramaSavePayload(episodeList)
+    if (!payload?.id) {
+      throw new Error("请先填写短剧名称并保存基础信息")
+    }
+    const res = await dramaService.saveOrUpdate(payload)
+    if (!res?.data) {
+      throw new Error(res?.msg || res?.message || "同步短剧失败")
+    }
+  }
+
   async function handlePlayEpisode(ep: DramaEpisode) {
     const videoId = ep.videoAssetId?.trim()
     if (!videoId) {
-      toast.error("该剧集尚未关联视频，请先编辑剧集上传并保存短剧")
+      toast.error(
+        "该剧集未关联视频 ID。请：编辑剧集 → 上传视频 → 点「确定」；若刚上传，请确认已点页面顶部「保存」。",
+      )
       return
     }
 
@@ -413,62 +467,86 @@ export default function DramaEditPage() {
     const fileKey = episodeForm.videoFileKey.trim()
     const videoChanged = episodeVideoChanged(finalVideoId)
 
+    const next: DramaEpisode = {
+      ...(prevEp?.id ? { id: prevEp.id } : {}),
+      episodeNum,
+      title,
+      duration: toNumberOrUndefined(episodeForm.duration),
+      price: toNumberOrUndefined(episodeForm.price),
+      videoAssetId: finalVideoId || undefined,
+    }
+
+    const updatedEpisodes = (() => {
+      const cloned = [...episodes]
+      if (editingEpisodeIndex == null) {
+        cloned.push(next)
+      } else {
+        cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
+      }
+      cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
+      return cloned
+    })()
+
+    setEpisodes(updatedEpisodes)
+    setEpisodeDialogOpen(false)
+
     setSavingEpisode(true)
+    let videoOpsError: string | null = null
+    let syncError: string | null = null
+
     try {
-      if (videoChanged) {
-        const toDelete = collectVideosToDeleteOnSave(finalVideoId)
-        if (toDelete.length > 0) {
-          await videoService.deleteVideos(toDelete, {
-            preserveRawPath: finalVideoId ? fileKey : undefined,
-          })
-        }
+      try {
+        if (videoChanged) {
+          const toDelete = collectVideosToDeleteOnSave(finalVideoId)
+          if (toDelete.length > 0) {
+            await videoService.deleteVideos(toDelete, {
+              preserveRawPath: finalVideoId ? fileKey : undefined,
+            })
+          }
 
-        if (finalVideoId && fileKey && dramaId && episodeId) {
-          await videoService.notifyTranscode({
-            videoId: finalVideoId,
-            fileKey,
-            dramaId,
-            episodeId,
-          })
+          if (finalVideoId && fileKey && dramaId && episodeId) {
+            await videoService.notifyTranscode({
+              videoId: finalVideoId,
+              fileKey,
+              dramaId,
+              episodeId,
+            })
+          }
+        }
+      } catch (e) {
+        console.error(e)
+        videoOpsError =
+          e instanceof Error ? e.message : "转码/清理旧视频失败，视频 ID 已写入本页"
+      }
+
+      if (dramaId) {
+        try {
+          await persistDramaEpisodes(updatedEpisodes)
+        } catch (e) {
+          console.error(e)
+          syncError = e instanceof Error ? e.message : "同步视频 ID 到服务器失败"
         }
       }
 
-      const next: DramaEpisode = {
-        ...(prevEp?.id ? { id: prevEp.id } : {}),
-        episodeNum,
-        title,
-        duration: toNumberOrUndefined(episodeForm.duration),
-        price: toNumberOrUndefined(episodeForm.price),
-        videoAssetId: finalVideoId || undefined,
+      if (videoOpsError && syncError) {
+        toast.error(`${videoOpsError}；${syncError}`)
+      } else if (videoOpsError) {
+        toast.error(`${videoOpsError}，请点击页面顶部「保存」重试同步`)
+      } else if (syncError) {
+        toast.error(`${syncError}，请点击页面顶部「保存」`)
+      } else if (!dramaId) {
+        toast.success("已更新剧集（请先保存短剧基础信息以同步视频 ID）")
+      } else {
+        const base =
+          editingEpisodeIndex == null
+            ? "已添加剧集"
+            : videoChanged
+              ? finalVideoId
+                ? "已更新剧集并提交转码"
+                : "已更新剧集"
+              : "已更新剧集"
+        toast.success(`${base}，视频 ID 已保存`)
       }
-
-      setEpisodes((prev) => {
-        const cloned = [...prev]
-        if (editingEpisodeIndex == null) {
-          cloned.push(next)
-        } else {
-          cloned[editingEpisodeIndex] = { ...cloned[editingEpisodeIndex], ...next }
-        }
-        cloned.sort((a, b) => (a.episodeNum ?? 0) - (b.episodeNum ?? 0))
-        return cloned
-      })
-
-      setEpisodeDialogOpen(false)
-      const toastMsg = (() => {
-        if (editingEpisodeIndex == null) {
-          return finalVideoId && videoChanged
-            ? "已添加剧集，转码任务已提交（请保存短剧）"
-            : "已添加剧集（请保存短剧）"
-        }
-        if (!videoChanged) return "已更新剧集（视频未变更）"
-        return finalVideoId
-          ? "已更新剧集，旧视频已清理并提交转码（请保存短剧）"
-          : "已更新剧集，已移除视频关联（请保存短剧）"
-      })()
-      toast.success(toastMsg)
-    } catch (e) {
-      console.error(e)
-      toast.error(e instanceof Error ? e.message : "保存剧集失败")
     } finally {
       setSavingEpisode(false)
     }
@@ -520,24 +598,26 @@ export default function DramaEditPage() {
         return
       }
 
-      const payload: MicroDramaDTO = {
-        ...(!isCreate ? { id: dramaUuid } : {}),
-        title,
-        coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
-        description: form.description.trim() ? form.description.trim() : undefined,
-        totalEpisodes: totalEpisodesNumber ?? episodes.length,
-        price: priceNumber,
-        status: Number(form.status) as 0 | 1,
-        sort: sortNumber,
-        episodes: episodes.map((ep) => ({
-          ...(ep.id ? { id: ep.id } : {}),
-          episodeNum: ep.episodeNum,
-          title: ep.title,
-          videoAssetId: ep.videoAssetId,
-          duration: ep.duration,
-          price: ep.price,
-        })),
-      }
+      const payload =
+        buildDramaSavePayload() ??
+        ({
+          ...(!isCreate && dramaUuid ? { id: dramaUuid } : {}),
+          title,
+          coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
+          description: form.description.trim() ? form.description.trim() : undefined,
+          totalEpisodes: totalEpisodesNumber ?? episodes.length,
+          price: priceNumber,
+          status: Number(form.status) as 0 | 1,
+          sort: sortNumber,
+          episodes: episodes.map((ep) => ({
+            ...(ep.id ? { id: ep.id } : {}),
+            episodeNum: ep.episodeNum,
+            title: ep.title,
+            videoAssetId: ep.videoAssetId?.trim() || undefined,
+            duration: ep.duration,
+            price: ep.price,
+          })),
+        } satisfies MicroDramaDTO)
 
       const res = await dramaService.saveOrUpdate(payload)
       const ok = res?.data
@@ -747,6 +827,16 @@ export default function DramaEditPage() {
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <div>时长：{ep.duration ?? "-"}s</div>
                           <div>价格：{ep.price ?? "-"} TON</div>
+                        </div>
+                        <div
+                          className={
+                            ep.videoAssetId
+                              ? "truncate text-xs text-emerald-600"
+                              : "text-xs text-amber-600"
+                          }
+                          title={ep.videoAssetId}
+                        >
+                          {ep.videoAssetId ? "已关联视频" : "未关联视频 ID"}
                         </div>
                       </div>
                     </div>
