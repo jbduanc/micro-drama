@@ -61,8 +61,16 @@ export const videoService = {
     return unwrap(res.data)
   },
 
-  async deleteVideos(items: DeleteVideoItem[]): Promise<DeleteVideosData> {
-    const res = await videoHttp.post<Result<DeleteVideosData>>("/v1/video/delete", { items })
+  async deleteVideos(
+    items: DeleteVideoItem[],
+    options?: { preserveRawPath?: string },
+  ): Promise<DeleteVideosData> {
+    const res = await videoHttp.post<Result<DeleteVideosData>>("/v1/video/delete", {
+      items,
+      ...(options?.preserveRawPath?.trim()
+        ? { preserveRawPath: options.preserveRawPath.trim() }
+        : {}),
+    })
     return unwrap(res.data)
   },
 }

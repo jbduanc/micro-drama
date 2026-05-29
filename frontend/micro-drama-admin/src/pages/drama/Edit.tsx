@@ -362,7 +362,9 @@ export default function DramaEditPage() {
       if (videoChanged) {
         const toDelete = collectVideosToDeleteOnSave(finalVideoId)
         if (toDelete.length > 0) {
-          await videoService.deleteVideos(toDelete)
+          await videoService.deleteVideos(toDelete, {
+            preserveRawPath: finalVideoId ? fileKey : undefined,
+          })
         }
 
         if (finalVideoId && fileKey && dramaId && episodeId) {

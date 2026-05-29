@@ -10,12 +10,14 @@ import (
 )
 
 // deleteVideoAssetFully 删除 video_asset / transcode_task 记录及 OSS 原片、HLS 目录。
-func (s *VideoService) deleteVideoAssetFully(ctx context.Context, asset *model.VideoAsset) error {
+// preserveRawPath：同集多 videoId 共用一条 raw 路径时，清理旧记录但保留即将转码的原片。
+func (s *VideoService) deleteVideoAssetFully(ctx context.Context, asset *model.VideoAsset, preserveRawPath string) error {
 	if asset == nil || strings.TrimSpace(asset.ID) == "" {
 		return nil
 	}
 
-	if key := strings.TrimSpace(asset.RawPath); key != "" {
+	preserveRawPath = strings.TrimPrefix(strings.TrimSpace(preserveRawPath), "/")
+	if key := strings.TrimSpace(asset.RawPath); key != "" && key != preserveRawPath {
 		if err := s.oss.RemoveObject(ctx, key); err != nil {
 			s.log.Warn("oss remove raw failed", zap.String("objectKey", key), zap.Error(err))
 		}
@@ -45,7 +47,7 @@ func (s *VideoService) replaceEpisodeVideoByRawPath(ctx context.Context, fileKey
 		zap.String("fileKey", fileKey),
 		zap.String("status", existing.Status),
 	)
-	return s.deleteVideoAssetFully(ctx, existing)
+	return s.deleteVideoAssetFully(ctx, existing, "")
 }
 
 func hlsOSSPrefix(hlsPath string) string {

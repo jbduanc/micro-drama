@@ -37,7 +37,10 @@ func (s *VideoService) triggerTranscode(
 	size, ossEtag, err := s.oss.StatObject(ctx, fileKey)
 	if err != nil {
 		s.log.Error("oss stat object failed", zap.String("fileKey", fileKey), zap.Error(err))
-		return nil, fmt.Errorf("object not found in storage, upload may have failed")
+		return nil, fmt.Errorf("object not found in storage, upload may have failed: %v", err)
+	}
+	if size <= 0 {
+		return nil, fmt.Errorf("object is empty in storage, upload may have failed")
 	}
 	if sizeBytes > 0 {
 		size = sizeBytes

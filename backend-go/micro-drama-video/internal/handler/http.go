@@ -204,7 +204,8 @@ func notifyTranscodeHandler(log *zap.Logger, svc *service.VideoService) gin.Hand
 }
 
 type deleteVideosRequest struct {
-	Items []deleteVideoItemRequest `json:"items" binding:"required,min=1,dive"`
+	Items           []deleteVideoItemRequest `json:"items" binding:"required,min=1,dive"`
+	PreserveRawPath string                   `json:"preserveRawPath"`
 }
 
 type deleteVideoItemRequest struct {
@@ -228,8 +229,9 @@ func deleteVideosHandler(log *zap.Logger, svc *service.VideoService) gin.Handler
 			})
 		}
 		out, err := svc.DeleteVideos(c.Request.Context(), &service.DeleteVideosInput{
-			Items:  items,
-			UserID: c.GetHeader("X-User-Id"),
+			Items:           items,
+			PreserveRawPath: req.PreserveRawPath,
+			UserID:          c.GetHeader("X-User-Id"),
 		})
 		if err != nil {
 			log.Error("delete videos", zap.Error(err))

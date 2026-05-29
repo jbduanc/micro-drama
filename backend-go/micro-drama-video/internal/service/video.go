@@ -146,8 +146,9 @@ type DeleteVideoItem struct {
 }
 
 type DeleteVideosInput struct {
-	Items  []DeleteVideoItem
-	UserID string
+	Items            []DeleteVideoItem
+	PreserveRawPath  string // 不删除该 OSS 原片（同集覆盖上传时与最终 fileKey 相同）
+	UserID           string
 }
 
 type DeleteVideosOutput struct {
@@ -187,17 +188,19 @@ func (s *VideoService) DeleteVideos(ctx context.Context, in *DeleteVideosInput) 
 		assetByID[a.ID] = a
 	}
 
+	preserveRaw := strings.TrimPrefix(strings.TrimSpace(in.PreserveRawPath), "/")
+
 	out := &DeleteVideosOutput{Deleted: []string{}, Failed: []string{}}
 	for _, id := range ids {
 		if a, ok := assetByID[id]; ok {
-			if err := s.deleteVideoAssetFully(ctx, a); err != nil {
+			if err := s.deleteVideoAssetFully(ctx, a, preserveRaw); err != nil {
 				out.Failed = append(out.Failed, id)
 				continue
 			}
 			out.Deleted = append(out.Deleted, id)
 			continue
 		}
-		if key := fileKeyByID[id]; key != "" {
+		if key := fileKeyByID[id]; key != "" && key != preserveRaw {
 			if err := s.oss.RemoveObject(ctx, key); err != nil {
 				s.log.Warn("oss remove failed", zap.String("objectKey", key), zap.Error(err))
 			}
