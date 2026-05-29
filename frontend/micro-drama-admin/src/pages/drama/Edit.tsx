@@ -7,6 +7,7 @@ import { dramaService } from "@/api/drama/service"
 import type { DramaEpisode, MicroDramaDTO } from "@/api/drama/types"
 import { uploadFileWithSts, videoService } from "@/api/video/service"
 import type { DeleteVideoItem } from "@/api/video/types"
+import { VideoPreviewDialog } from "@/components/video/VideoPreviewDialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -39,6 +40,17 @@ type DiscardedVideo = {
 function toNumberOrUndefined(value: string) {
   const n = Number(value)
   return Number.isFinite(n) ? n : undefined
+}
+
+function getRequestErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === "object" && "response" in error) {
+    const data = (error as { response?: { data?: { msg?: string; message?: string } } })
+      .response?.data
+    if (data?.msg?.trim()) return data.msg.trim()
+    if (data?.message?.trim()) return data.message.trim()
+  }
+  if (error instanceof Error && error.message.trim()) return error.message
+  return fallback
 }
 
 function buildEpisodeRawFileKey(dramaId: string, episodeId: string): string {
@@ -132,6 +144,9 @@ export default function DramaEditPage() {
   const [uploading, setUploading] = useState(false)
   const [savingEpisode, setSavingEpisode] = useState(false)
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState("")
+  const [previewTitle, setPreviewTitle] = useState("")
   const videoFileInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchDetail(dramaId: string) {
@@ -301,10 +316,18 @@ export default function DramaEditPage() {
         toast.error(`视频尚未转码完成（状态：${data.status}），暂不可播放`)
         return
       }
-      window.open(data.playUrl, "_blank", "noopener,noreferrer")
+      const playUrl = data.playUrl?.trim()
+      if (!playUrl) {
+        toast.error("播放地址为空")
+        return
+      }
+      const epLabel = ep.episodeNum != null ? `第${ep.episodeNum}集` : "剧集"
+      setPreviewTitle(`${epLabel} · ${ep.title || "未命名"}`)
+      setPreviewUrl(playUrl)
+      setPreviewOpen(true)
     } catch (e) {
       console.error(e)
-      toast.error(e instanceof Error ? e.message : "获取播放地址失败")
+      toast.error(getRequestErrorMessage(e, "获取播放地址失败"))
     } finally {
       setPlayingVideoId(null)
     }
@@ -667,7 +690,7 @@ export default function DramaEditPage() {
                         <button
                           type="button"
                           className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-sm transition hover:bg-muted disabled:opacity-50"
-                          onClick={() => handlePlayEpisode(ep)}
+                          onClick={() => void handlePlayEpisode(ep)}
                           disabled={!ep.videoAssetId || playingVideoId === ep.videoAssetId}
                           aria-label="播放"
                           title={ep.videoAssetId ? "播放（需转码完成）" : "暂无视频"}
@@ -739,6 +762,13 @@ export default function DramaEditPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <VideoPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        playUrl={previewUrl}
+        title={previewTitle}
+      />
 
       <Dialog open={episodeDialogOpen} onOpenChange={setEpisodeDialogOpen}>
         <DialogContent>
