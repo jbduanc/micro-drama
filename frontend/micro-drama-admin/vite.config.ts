@@ -1,24 +1,17 @@
-import { defineConfig } from "vite"
+import { defineConfig, loadEnv } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
 
-export default defineConfig(() => {
-  // Local dev default: backend on host
-  // Docker dev default: proxy to service name on app-network
+export default defineConfig(({ mode }) => {
+  // 与 .env.development 中 VITE_*_API_TARGET 一致；仅 pnpm dev 时代理，不参与生产 build
+  const env = loadEnv(mode, process.cwd(), "")
+
   const adminApiTarget =
-    process.env.VITE_ADMIN_API_TARGET ??
-    process.env.ADMIN_API_TARGET ??
-    "http://47.84.207.243:6001"
-
+    env.VITE_ADMIN_API_TARGET || env.ADMIN_API_TARGET || "http://127.0.0.1:6001"
   const contentApiTarget =
-    process.env.VITE_CONTENT_API_TARGET ??
-    process.env.CONTENT_API_TARGET ??
-    "http://127.0.0.1:6002"
-
+    env.VITE_CONTENT_API_TARGET || env.CONTENT_API_TARGET || "http://127.0.0.1:6002"
   const videoApiTarget =
-    process.env.VITE_VIDEO_API_TARGET ??
-    process.env.VIDEO_API_TARGET ??
-    "http://127.0.0.1:8080"
+    env.VITE_VIDEO_API_TARGET || env.VIDEO_API_TARGET || "http://127.0.0.1:8080"
 
   return {
     plugins: [react()],
@@ -27,27 +20,20 @@ export default defineConfig(() => {
       port: 5173,
       strictPort: true,
       proxy: {
-        // Main path used by axios baseURL: "/admin-api"
         "/admin-api": {
           target: adminApiTarget,
           changeOrigin: true,
         },
-
-        // Backward-compat: old relative calls like "/memberPlans/**"
         "/memberPlans": {
           target: adminApiTarget,
           changeOrigin: true,
           rewrite: (p) => `/admin-api${p}`,
         },
-
-        // 短剧管理：直连 micro-drama-content（与 axios contentHttp baseURL `/content-api` 对应）
         "/content-api": {
           target: contentApiTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/content-api/, "") || "/",
         },
-
-        // 视频上传/播放/转码：micro-drama-video
         "/video-api": {
           target: videoApiTarget,
           changeOrigin: true,
