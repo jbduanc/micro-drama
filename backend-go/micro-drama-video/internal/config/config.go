@@ -203,6 +203,7 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	c.Playback.HLSKeyTemplate = v.GetString("playback_hls_key_template")
 	c.Playback.RequireReady = v.GetBool("playback_require_ready")
 	c.Playback.TokenSecret = v.GetString("playback_token_secret")
+	c.Playback.PublicBaseURL = strings.TrimRight(v.GetString("playback_public_base_url"), "/")
 
 	c.DB.DSNRaw = v.GetString("db_dsn")
 	c.DB.Host = v.GetString("db_host")
@@ -320,6 +321,7 @@ type Config struct {
 		HLSKeyTemplate   string
 		RequireReady     bool
 		TokenSecret      string // 播放 token 签名密钥
+		PublicBaseURL    string // 公网播放域名（CDN/Cloudflare），如 https://video.dramadjbo.com
 	}
 
 	DB DBConfig

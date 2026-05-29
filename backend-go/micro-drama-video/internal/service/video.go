@@ -314,6 +314,13 @@ func (s *VideoService) resolvePlayURL(ctx context.Context, hlsPath string) (stri
 	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
 		return hlsPath, nil
 	}
+	if base := strings.TrimRight(strings.TrimSpace(s.cfg.Playback.PublicBaseURL), "/"); base != "" {
+		key := strings.TrimPrefix(strings.TrimSpace(hlsPath), "/")
+		if key == "" {
+			return "", fmt.Errorf("hls_path is empty")
+		}
+		return base + "/" + key, nil
+	}
 	expire := time.Duration(s.cfg.Playback.URLExpireSeconds) * time.Second
 	u, err := s.oss.PresignGet(ctx, hlsPath, expire)
 	if err != nil {
