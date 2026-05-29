@@ -92,6 +92,38 @@ func (o *OSS) RemoveObject(ctx context.Context, objectKey string) error {
 	return o.cli.RemoveObject(ctx, o.bucket, objectKey, minio.RemoveObjectOptions{})
 }
 
+// RemovePrefix 递归删除指定前缀下的所有对象（用于清理 HLS 目录）。
+func (o *OSS) RemovePrefix(ctx context.Context, prefix string) error {
+	prefix = strings.TrimPrefix(strings.TrimSpace(prefix), "/")
+	if prefix == "" {
+		return nil
+	}
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+
+	ch := o.cli.ListObjects(ctx, o.bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	})
+
+	var keys []string
+	for obj := range ch {
+		if obj.Err != nil {
+			return obj.Err
+		}
+		if obj.Key != "" {
+			keys = append(keys, obj.Key)
+		}
+	}
+	for _, key := range keys {
+		if err := o.cli.RemoveObject(ctx, o.bucket, key, minio.RemoveObjectOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // PresignGet 生成限时有效的 GET 预签名 URL。
 //
 // 前端/播放器用此 URL 直接访问 OSS，无需把 AccessKey 暴露给浏览器。

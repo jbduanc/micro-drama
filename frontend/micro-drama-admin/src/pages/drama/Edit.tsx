@@ -41,12 +41,16 @@ function toNumberOrUndefined(value: string) {
   return Number.isFinite(n) ? n : undefined
 }
 
+function buildEpisodeRawFileKey(dramaId: string, episodeId: string): string {
+  return `raw/${dramaId.trim()}/${episodeId.trim()}.mp4`
+}
+
 function parseEpisodeFromRaw(raw: Record<string, unknown>): DramaEpisode {
   const id =
     raw.id != null && String(raw.id).trim() !== "" ? String(raw.id).trim() : undefined
 
   const title = String(raw.title ?? raw.episodeTitle ?? "")
-  const videoAssetIdRaw = raw.videoAssetId ?? raw.videoUrl
+  const videoAssetIdRaw = raw.videoAssetId ?? raw.video_asset_id ?? raw.videoUrl
   const videoAssetId =
     videoAssetIdRaw != null && String(videoAssetIdRaw).trim() !== ""
       ? String(videoAssetIdRaw).trim()
@@ -223,6 +227,10 @@ export default function DramaEditPage() {
   function openEditEpisode(indexInAll: number) {
     const ep = episodes[indexInAll]
     if (!ep) return
+    const dramaId = resolveDramaId()
+    const episodeId = resolveEpisodeIdForUpload(ep.episodeNum ?? 0, ep.id)
+    const videoFileKey =
+      dramaId && episodeId ? buildEpisodeRawFileKey(dramaId, episodeId) : ""
     setEditingEpisodeIndex(indexInAll)
     resetEpisodeVideoSession(ep.videoAssetId ?? "")
     setEpisodeForm({
@@ -231,7 +239,7 @@ export default function DramaEditPage() {
       duration: ep.duration == null ? "" : String(ep.duration),
       price: ep.price == null ? "" : String(ep.price),
       videoAssetId: ep.videoAssetId ?? "",
-      videoFileKey: "",
+      videoFileKey,
     })
     setEpisodeDialogOpen(true)
   }
@@ -265,19 +273,13 @@ export default function DramaEditPage() {
         contentType,
       })
       await uploadFileWithSts(file, sts, setUploadProgress)
-      await videoService.notifyTranscode({
-        videoId: sts.videoId,
-        fileKey: sts.fileKey,
-        dramaId,
-        episodeId,
-      })
       setEpisodeForm((f) => ({
         ...f,
         videoAssetId: sts.videoId,
         videoFileKey: sts.fileKey,
       }))
       setUploadProgress(100)
-      toast.success("视频已上传，转码任务已提交")
+      toast.success("视频已上传，请点击确定保存剧集并提交转码")
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : "视频上传失败")
@@ -328,6 +330,14 @@ export default function DramaEditPage() {
     return items
   }
 
+  /** 本会话内是否变更过视频（含重新上传、移除、换新 ID） */
+  function episodeVideoChanged(finalVideoId: string): boolean {
+    const finalId = finalVideoId.trim()
+    const savedId = originalVideoAssetId.trim()
+    if (discardedVideos.length > 0) return true
+    return finalId !== savedId
+  }
+
   async function saveEpisodeFromDialog() {
     const episodeNum = Number(episodeForm.episodeNum)
     if (!Number.isInteger(episodeNum) || episodeNum <= 0) {
@@ -342,12 +352,27 @@ export default function DramaEditPage() {
 
     const prevEp = editingEpisodeIndex != null ? episodes[editingEpisodeIndex] : undefined
     const finalVideoId = episodeForm.videoAssetId.trim()
+    const dramaId = resolveDramaId()
+    const episodeId = resolveEpisodeIdForUpload(episodeNum, prevEp?.id)
+    const fileKey = episodeForm.videoFileKey.trim()
+    const videoChanged = episodeVideoChanged(finalVideoId)
 
     setSavingEpisode(true)
     try {
-      const toDelete = collectVideosToDeleteOnSave(finalVideoId)
-      if (toDelete.length > 0) {
-        await videoService.deleteVideos(toDelete)
+      if (videoChanged) {
+        const toDelete = collectVideosToDeleteOnSave(finalVideoId)
+        if (toDelete.length > 0) {
+          await videoService.deleteVideos(toDelete)
+        }
+
+        if (finalVideoId && fileKey && dramaId && episodeId) {
+          await videoService.notifyTranscode({
+            videoId: finalVideoId,
+            fileKey,
+            dramaId,
+            episodeId,
+          })
+        }
       }
 
       const next: DramaEpisode = {
@@ -371,13 +396,18 @@ export default function DramaEditPage() {
       })
 
       setEpisodeDialogOpen(false)
-      toast.success(
-        editingEpisodeIndex == null
-          ? "已添加剧集（未提交短剧）"
-          : finalVideoId
-            ? "已更新剧集（转码由 OSS 事件自动触发）"
-            : "已更新剧集（未提交短剧）",
-      )
+      const toastMsg = (() => {
+        if (editingEpisodeIndex == null) {
+          return finalVideoId && videoChanged
+            ? "已添加剧集，转码任务已提交（请保存短剧）"
+            : "已添加剧集（请保存短剧）"
+        }
+        if (!videoChanged) return "已更新剧集（视频未变更）"
+        return finalVideoId
+          ? "已更新剧集，旧视频已清理并提交转码（请保存短剧）"
+          : "已更新剧集，已移除视频关联（请保存短剧）"
+      })()
+      toast.success(toastMsg)
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : "保存剧集失败")
@@ -801,19 +831,30 @@ export default function DramaEditPage() {
                     <p className="text-xs text-muted-foreground">上传进度 {uploadProgress}%</p>
                   </div>
                 )}
-                {episodeForm.videoAssetId.trim() && (
+                {(episodeForm.videoAssetId.trim() || originalVideoAssetId.trim()) && (
                   <div className="relative rounded-md border bg-muted/30 px-3 py-2 pr-8 text-xs">
                     <button
                       type="button"
                       className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                       onClick={clearEpisodeVideo}
-                      title="移除视频，重新上传"
+                      title="移除视频关联"
                       aria-label="移除视频"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
-                    <div className="font-medium text-muted-foreground">视频 ID</div>
-                    <div className="mt-0.5 break-all font-mono">{episodeForm.videoAssetId}</div>
+                    <div className="font-medium text-muted-foreground">当前视频 ID</div>
+                    <div className="mt-0.5 break-all font-mono">
+                      {episodeForm.videoAssetId.trim() || originalVideoAssetId.trim()}
+                    </div>
+                    {episodeForm.videoFileKey.trim() && (
+                      <div className="mt-2 text-muted-foreground">
+                        <span className="font-medium">OSS 路径</span>
+                        <div className="mt-0.5 break-all font-mono">{episodeForm.videoFileKey}</div>
+                      </div>
+                    )}
+                    <p className="mt-2 text-muted-foreground">
+                      可多次上传试片；点击「确定」后才会删除旧视频 ID、用当前 ID 提交转码。
+                    </p>
                   </div>
                 )}
               </div>

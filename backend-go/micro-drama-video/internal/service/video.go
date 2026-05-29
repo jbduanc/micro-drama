@@ -190,26 +190,27 @@ func (s *VideoService) DeleteVideos(ctx context.Context, in *DeleteVideosInput) 
 	out := &DeleteVideosOutput{Deleted: []string{}, Failed: []string{}}
 	for _, id := range ids {
 		if a, ok := assetByID[id]; ok {
-			keys := []string{a.RawPath}
-			if p := s.resolveHLSPath(a); p != "" && !strings.HasPrefix(strings.ToLower(p), "http") {
-				keys = append(keys, p)
+			if err := s.deleteVideoAssetFully(ctx, a); err != nil {
+				out.Failed = append(out.Failed, id)
+				continue
 			}
-			for _, key := range keys {
-				if err := s.oss.RemoveObject(ctx, key); err != nil {
-					s.log.Warn("oss remove failed", zap.String("objectKey", key), zap.Error(err))
-				}
-			}
-		} else if key := fileKeyByID[id]; key != "" {
+			out.Deleted = append(out.Deleted, id)
+			continue
+		}
+		if key := fileKeyByID[id]; key != "" {
 			if err := s.oss.RemoveObject(ctx, key); err != nil {
 				s.log.Warn("oss remove failed", zap.String("objectKey", key), zap.Error(err))
 			}
 		}
+		if err := s.repo.DeleteVideoAssetsByIDs(ctx, []string{id}); err != nil {
+			out.Failed = append(out.Failed, id)
+			continue
+		}
+		out.Deleted = append(out.Deleted, id)
 	}
-
-	if err := s.repo.DeleteVideoAssetsByIDs(ctx, ids); err != nil {
-		return nil, fmt.Errorf("delete video_asset: %w", err)
+	if len(out.Deleted) == 0 && len(out.Failed) > 0 {
+		return out, fmt.Errorf("delete video_asset failed")
 	}
-	out.Deleted = ids
 	s.log.Info("videos deleted", zap.Strings("videoIds", ids))
 	return out, nil
 }

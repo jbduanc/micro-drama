@@ -2,14 +2,12 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"micro-drama-video/internal/model"
 	"micro-drama-video/internal/repository"
 	"micro-drama-video/internal/storage"
 )
@@ -52,20 +50,7 @@ func (s *VideoService) CreateSTSUploadCredentials(ctx context.Context, in *STSUp
 	videoID := uuid.NewString()
 	fileKey := storage.BuildRawKey(s.cfg.OSS.UploadPrefix, dramaID, episodeID)
 
-	existing, err := s.repo.GetVideoAssetByRawPath(ctx, fileKey)
-	if err != nil && !errors.Is(err, repository.ErrVideoNotFound) {
-		return nil, err
-	}
-	if existing != nil {
-		switch existing.Status {
-		case model.VideoStatusReady, model.VideoStatusTranscoding:
-			return nil, fmt.Errorf("video already exists for this episode, delete it first")
-		default:
-			if err := s.repo.DeleteVideoAssetsByIDs(ctx, []string{existing.ID}); err != nil {
-				return nil, fmt.Errorf("replace pending video: %w", err)
-			}
-		}
-	}
+	// 同集重复上传不在 STS 阶段删旧片；由管理端保存剧集时批量 delete + 对最终 videoId notify-transcode。
 
 	callbackToken, err := storage.NewCallbackToken()
 	if err != nil {
