@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -235,7 +234,7 @@ type PlayOutput struct {
 	HlsPath   string `json:"hlsPath"`
 }
 
-// PlayAuth 校验订单（预留）后返回带 token 的 HLS 预签名播放地址。
+// PlayAuth 校验订单（预留）后返回 HLS 预签名播放地址；业务 token 单独返回，不可拼入 OSS URL（会破坏签名）。
 func (s *VideoService) PlayAuth(ctx context.Context, in *PlayInput) (*PlayOutput, error) {
 	if in == nil || strings.TrimSpace(in.VideoID) == "" {
 		return nil, fmt.Errorf("videoId is required")
@@ -272,7 +271,6 @@ func (s *VideoService) PlayAuth(ctx context.Context, in *PlayInput) (*PlayOutput
 	}
 
 	token := s.signPlayToken(in.VideoID, userID, expireSec)
-	playURL = appendQueryParam(playURL, "token", token)
 
 	s.log.Info("play auth succeeded",
 		zap.String("videoId", in.VideoID),
@@ -337,18 +335,7 @@ func (s *VideoService) signPlayToken(videoID, userID string, expireSec int) stri
 	return fmt.Sprintf("%s.%s", base64.RawURLEncoding.EncodeToString([]byte(payload)), sig)
 }
 
-func appendQueryParam(rawURL, key, value string) string {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return rawURL + "&" + key + "=" + url.QueryEscape(value)
-	}
-	q := u.Query()
-	q.Set(key, value)
-	u.RawQuery = q.Encode()
-	return u.String()
-}
-
-// VerifyPlayToken 校验播放 token（供后续网关或 CDN 回调使用，当前播放接口已内嵌签发）。
+// VerifyPlayToken 校验播放 token（供后续网关或 CDN 回调使用；勿拼入 OSS 预签名 URL）。
 func (s *VideoService) VerifyPlayToken(token, videoID, userID string) bool {
 	secret := strings.TrimSpace(s.cfg.Playback.TokenSecret)
 	if secret == "" {

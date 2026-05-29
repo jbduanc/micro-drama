@@ -78,7 +78,7 @@ go run ./cmd/video-api
 | POST | `/v1/video/upload-complete` | 直传完成回调（与 notify-transcode 相同，兼容旧客户端） |
 | POST | `/v1/video/notify-transcode` | 管理端保存剧集时通知转码（校验 OSS → 落库 → Kafka） |
 | POST | `/v1/video/delete` | 批量删除视频（OSS + 数据库） |
-| GET | `/v1/video/play?videoId=&orderId=` | 播放鉴权（需状态 READY），返回带 token 的预签名 URL |
+| GET | `/v1/video/play?videoId=&orderId=` | 播放鉴权（需状态 READY），返回 OSS 预签名 `playUrl` 与独立 `token` |
 
 ### STS 直传上传流程（推荐）
 

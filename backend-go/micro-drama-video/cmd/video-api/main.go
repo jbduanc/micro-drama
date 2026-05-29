@@ -2,7 +2,7 @@
 //
 // 本服务职责（与 micro-drama-transcoder 分工）：
 //   - 提供 HTTP API：预签名直传原片（前端 PUT OSS）+ 上传完成回调发 Kafka
-//   - 提供 HTTP API：播放鉴权（订单校验预留 + 带 token 的 HLS 预签名 URL）
+//   - 提供 HTTP API：播放鉴权（订单校验预留 + HLS 预签名 URL，token 独立返回）
 //   - 注册到 Consul，供 Kong / Java 服务发现
 //
 // 启动方式：go run ./cmd/video-api  或运行编译后的 video-api 二进制。
