@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
-import { Pencil, Play, Plus, Trash2, Upload, X } from "lucide-react"
+import { Loader2, Pencil, Play, Plus, Trash2, Upload, X } from "lucide-react"
 
 import { dramaService } from "@/api/drama/service"
 import type { DramaEpisode, MicroDramaDTO } from "@/api/drama/types"
@@ -144,9 +144,13 @@ export default function DramaEditPage() {
   const [uploading, setUploading] = useState(false)
   const [savingEpisode, setSavingEpisode] = useState(false)
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState("")
-  const [previewTitle, setPreviewTitle] = useState("")
+  const [preview, setPreview] = useState({
+    open: false,
+    title: "",
+    playUrl: "",
+    loading: false,
+    error: "",
+  })
   const videoFileInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchDetail(dramaId: string) {
@@ -306,28 +310,57 @@ export default function DramaEditPage() {
   async function handlePlayEpisode(ep: DramaEpisode) {
     const videoId = ep.videoAssetId?.trim()
     if (!videoId) {
-      toast.error("该剧集尚未关联视频")
+      toast.error("该剧集尚未关联视频，请先编辑剧集上传并保存短剧")
       return
     }
+
+    const epLabel = ep.episodeNum != null ? `第${ep.episodeNum}集` : "剧集"
+    const title = `${epLabel} · ${ep.title || "未命名"}`
+
+    setPreview({
+      open: true,
+      title,
+      playUrl: "",
+      loading: true,
+      error: "",
+    })
     setPlayingVideoId(videoId)
+
     try {
       const data = await videoService.play(videoId)
-      if (data.status !== "READY") {
-        toast.error(`视频尚未转码完成（状态：${data.status}），暂不可播放`)
+      const status = (data.status ?? "").trim().toUpperCase()
+      if (status !== "READY") {
+        setPreview((p) => ({
+          ...p,
+          loading: false,
+          error: `视频尚未转码完成（状态：${data.status || "未知"}）`,
+        }))
         return
       }
       const playUrl = data.playUrl?.trim()
       if (!playUrl) {
-        toast.error("播放地址为空")
+        setPreview((p) => ({
+          ...p,
+          loading: false,
+          error: "播放地址为空",
+        }))
         return
       }
-      const epLabel = ep.episodeNum != null ? `第${ep.episodeNum}集` : "剧集"
-      setPreviewTitle(`${epLabel} · ${ep.title || "未命名"}`)
-      setPreviewUrl(playUrl)
-      setPreviewOpen(true)
+      setPreview((p) => ({
+        ...p,
+        loading: false,
+        playUrl,
+        error: "",
+      }))
     } catch (e) {
       console.error(e)
-      toast.error(getRequestErrorMessage(e, "获取播放地址失败"))
+      const message = getRequestErrorMessage(e, "获取播放地址失败")
+      setPreview((p) => ({
+        ...p,
+        loading: false,
+        error: message,
+      }))
+      toast.error(message)
     } finally {
       setPlayingVideoId(null)
     }
@@ -689,13 +722,21 @@ export default function DramaEditPage() {
                       <div className="mt-6 flex items-center justify-center">
                         <button
                           type="button"
-                          className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-sm transition hover:bg-muted disabled:opacity-50"
+                          className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                           onClick={() => void handlePlayEpisode(ep)}
-                          disabled={!ep.videoAssetId || playingVideoId === ep.videoAssetId}
+                          disabled={playingVideoId === ep.videoAssetId}
                           aria-label="播放"
-                          title={ep.videoAssetId ? "播放（需转码完成）" : "暂无视频"}
+                          title={
+                            ep.videoAssetId
+                              ? "播放（需转码完成）"
+                              : "暂无视频，请先编辑剧集上传并保存"
+                          }
                         >
-                          <Play className="h-5 w-5" />
+                          {playingVideoId === ep.videoAssetId ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Play className="h-5 w-5" />
+                          )}
                         </button>
                       </div>
 
@@ -764,10 +805,12 @@ export default function DramaEditPage() {
       </Tabs>
 
       <VideoPreviewDialog
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        playUrl={previewUrl}
-        title={previewTitle}
+        open={preview.open}
+        onOpenChange={(open) => setPreview((p) => ({ ...p, open }))}
+        title={preview.title}
+        playUrl={preview.playUrl}
+        loading={preview.loading}
+        error={preview.error}
       />
 
       <Dialog open={episodeDialogOpen} onOpenChange={setEpisodeDialogOpen}>

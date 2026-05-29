@@ -9,12 +9,10 @@ import type {
   StsUploadData,
   UploadUrlData,
 } from "./types"
+import { normalizePlayAuthData, unwrapApiResult } from "./unwrap"
 
 function unwrap<T>(res: Result<T>): T {
-  if (res.code != null && res.code !== 0) {
-    throw new Error(res.msg || res.message || "request failed")
-  }
-  return res.data
+  return unwrapApiResult(res)
 }
 
 export const videoService = {
@@ -58,7 +56,7 @@ export const videoService = {
     const res = await videoHttp.get<Result<PlayAuthData>>("/v1/video/play", {
       params: { videoId, orderId: orderId || undefined },
     })
-    return unwrap(res.data)
+    return normalizePlayAuthData(unwrapApiResult(res.data))
   },
 
   async deleteVideos(
