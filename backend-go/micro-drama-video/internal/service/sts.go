@@ -89,9 +89,9 @@ func (s *VideoService) CreateSTSUploadCredentials(ctx context.Context, in *STSUp
 		return nil, err
 	}
 
-	region := strings.TrimSpace(s.cfg.OSS.Region)
+	region := storage.NormalizeOSSRegion(s.cfg.OSS.Region, s.cfg.OSS.Bucket)
 	if region == "" {
-		region = strings.TrimSpace(s.cfg.OSS.STSRegion)
+		region = storage.NormalizeOSSRegion(s.cfg.OSS.STSRegion, s.cfg.OSS.Bucket)
 	}
 
 	expireSec := int64(s.cfg.OSS.STSDurationSeconds)

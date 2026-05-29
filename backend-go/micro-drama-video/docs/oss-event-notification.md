@@ -136,6 +136,7 @@ transcoder → READY → 可播放
 
 | 现象 | 处理 |
 |------|------|
+| 上传请求 `net::ERR_CONNECTION_CLOSED`，主机名像 `bucket.bucket.ap-southeast-1...` | `oss_region` 应写 **`oss-ap-southeast-1`**，不要写 `bucket名.ap-southeast-1`；正确域名：`https://{bucket}.oss-ap-southeast-1.aliyuncs.com/...` |
 | invalid or expired callback token | token 已用过、或没先调 `/sts`；重新上传 |
 | 上传成功但不转码 | `oss_upload_callback_base_url` 是否公网可达 |
 | CallbackFailed | video-api 是否返回 `{"Status":"Ok"}` |

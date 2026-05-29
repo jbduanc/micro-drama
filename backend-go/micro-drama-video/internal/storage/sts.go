@@ -96,7 +96,10 @@ func AssumeRoleForObject(cfg *config.Config, objectKey string) (*STSCredentials,
 
 func BuildBucketEndpoint(cfg *config.Config) string {
 	bucket := strings.TrimSpace(cfg.OSS.Bucket)
-	region := strings.TrimSpace(cfg.OSS.Region)
+	region := NormalizeOSSRegion(cfg.OSS.Region, bucket)
+	if region == "" {
+		region = NormalizeOSSRegion(cfg.OSS.STSRegion, bucket)
+	}
 	if region != "" {
 		return fmt.Sprintf("https://%s.%s.aliyuncs.com", bucket, region)
 	}

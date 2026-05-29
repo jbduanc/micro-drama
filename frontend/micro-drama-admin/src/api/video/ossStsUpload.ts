@@ -8,13 +8,13 @@ export async function uploadFileWithSts(
   sts: StsUploadData,
   onProgress?: (percent: number) => void,
 ): Promise<void> {
+  // 仅传 region + bucket，由 ali-oss 拼虚拟主机域名；勿再传含 bucket 的 endpoint，否则会重复拼接主机名。
   const client = new OSS({
     region: sts.region,
     accessKeyId: sts.accessKeyId,
     accessKeySecret: sts.accessKeySecret,
     stsToken: sts.securityToken,
     bucket: sts.bucket,
-    endpoint: sts.endpoint,
     secure: true,
   })
 
