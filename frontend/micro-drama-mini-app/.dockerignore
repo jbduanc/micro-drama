@@ -1,5 +1,5 @@
 node_modules
-.next
 .git
 *.md
 .env*
+# 保留 .next/standalone 与 .next/static，供 Dockerfile COPY

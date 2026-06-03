@@ -695,17 +695,30 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v4
 
+      - name: 判定是否需要构建本工程
+        id: gate
+        run: |
+          BUILD=false
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BUILD=true
+          elif [ "${{ matrix.changed_output }}" = "frontend_admin" ] && [ "${{ needs.changes.outputs.frontend_admin }}" = "true" ]; then
+            BUILD=true
+          elif [ "${{ matrix.changed_output }}" = "frontend_mini_app" ] && [ "${{ needs.changes.outputs.frontend_mini_app }}" = "true" ]; then
+            BUILD=true
+          fi
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          if [ "$BUILD" = "false" ]; then
+            echo "Skip ${{ matrix.name }}: no changes for this frontend project."
+          fi
+
       - name: 安装 pnpm
-        if: |
-          matrix.package_manager == 'pnpm' && (
-            github.event_name == 'workflow_dispatch' ||
-            (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true')
-          )
+        if: steps.gate.outputs.build == 'true' && matrix.package_manager == 'pnpm'
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: 安装 Node
+        if: steps.gate.outputs.build == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -713,11 +726,7 @@ jobs:
           cache-dependency-path: ${{ matrix.package_manager == 'pnpm' && format('{0}/pnpm-lock.yaml', matrix.dir) || format('{0}/package-lock.json', matrix.dir) }}
 
       - name: 依赖缓存（pnpm store）
-        if: |
-          matrix.package_manager == 'pnpm' && (
-            github.event_name == 'workflow_dispatch' ||
-            (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true')
-          )
+        if: steps.gate.outputs.build == 'true' && matrix.package_manager == 'pnpm'
         uses: actions/cache@v4
         with:
           path: /home/runner/.local/share/pnpm/store
@@ -726,11 +735,7 @@ jobs:
             pnpm-store-
 
       - name: 前端编译 (pnpm)
-        if: |
-          matrix.package_manager == 'pnpm' && (
-            github.event_name == 'workflow_dispatch' ||
-            (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true')
-          )
+        if: steps.gate.outputs.build == 'true' && matrix.package_manager == 'pnpm'
         working-directory: ${{ matrix.dir }}
         run: |
           set -e
@@ -739,37 +744,30 @@ jobs:
           pnpm run build
 
       - name: 前端编译 (npm)
-        if: |
-          matrix.package_manager == 'npm' && (
-            github.event_name == 'workflow_dispatch' ||
-            (matrix.changed_output == 'frontend_mini_app' && needs.changes.outputs.frontend_mini_app == 'true')
-          )
+        if: steps.gate.outputs.build == 'true' && matrix.package_manager == 'npm'
         working-directory: ${{ matrix.dir }}
         run: |
           set -e
           test -f package.json || { echo "::error::$PWD 下无 package.json"; ls -la; exit 1; }
           npm ci
           npm run build
+          test -d .next/standalone || { echo "::error::missing .next/standalone after build"; ls -la .next || true; exit 1; }
+          test -d .next/static || { echo "::error::missing .next/static after build"; ls -la .next || true; exit 1; }
 
       - name: 配置 Docker 私服
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true') ||
-          (matrix.changed_output == 'frontend_mini_app' && needs.changes.outputs.frontend_mini_app == 'true')
+        if: steps.gate.outputs.build == 'true'
         run: |
           echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
 
       - name: 规范化 Docker 仓库地址
+        if: steps.gate.outputs.build == 'true'
         run: |
           set -e
           echo "Using registry ${{ env.NEXUS_DOCKER_HOST }}"
 
       - name: 登录 Nexus Docker
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true') ||
-          (matrix.changed_output == 'frontend_mini_app' && needs.changes.outputs.frontend_mini_app == 'true')
+        if: steps.gate.outputs.build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.NEXUS_DOCKER_HOST }}
@@ -777,10 +775,7 @@ jobs:
           password: ${{ secrets.NEXUS_PASSWORD }}
 
       - name: Docker build & push
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true') ||
-          (matrix.changed_output == 'frontend_mini_app' && needs.changes.outputs.frontend_mini_app == 'true')
+        if: steps.gate.outputs.build == 'true'
         working-directory: ${{ matrix.dir }}
         run: |
           set -e
@@ -792,10 +787,8 @@ jobs:
 
       - name: Webhook 部署
         if: |
-          (github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false) &&
-          (github.event_name == 'workflow_dispatch' ||
-            (matrix.changed_output == 'frontend_admin' && needs.changes.outputs.frontend_admin == 'true') ||
-            (matrix.changed_output == 'frontend_mini_app' && needs.changes.outputs.frontend_mini_app == 'true'))
+          steps.gate.outputs.build == 'true' &&
+          (github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false)
         continue-on-error: true
         env:
           DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
