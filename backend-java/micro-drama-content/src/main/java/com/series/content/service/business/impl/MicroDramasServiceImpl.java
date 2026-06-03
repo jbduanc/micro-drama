@@ -117,10 +117,10 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
         if (dramaId != null) {
             LambdaQueryWrapper<DramaEpisodes> countWrapper = new LambdaQueryWrapper<>();
             countWrapper.eq(DramaEpisodes::getDramaId, dramaId);
-            Long count = dramaEpisodesMapper.selectCount(countWrapper);
+            Integer count = dramaEpisodesMapper.selectCount(countWrapper);
             MicroDramas drama = this.getById(dramaId);
             if (drama != null) {
-                drama.setTotalEpisodes(count == null ? 0 : count.intValue());
+                drama.setTotalEpisodes(count == null ? 0 : count);
                 drama.setUpdateTime(new Date());
                 this.updateById(drama);
             }
