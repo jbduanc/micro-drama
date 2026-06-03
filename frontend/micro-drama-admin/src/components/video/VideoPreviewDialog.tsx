@@ -2,13 +2,7 @@ import Hls from "hls.js"
 import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type VideoPreviewDialogProps = {
   open: boolean
@@ -109,7 +103,6 @@ export function VideoPreviewDialog({
       <DialogContent className="z-[100] max-w-3xl gap-4 sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>预览转码后的 HLS 流（管理端）</DialogDescription>
         </DialogHeader>
 
         {loading && (

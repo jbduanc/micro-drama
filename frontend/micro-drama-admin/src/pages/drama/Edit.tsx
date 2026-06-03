@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -154,6 +153,7 @@ export default function DramaEditPage() {
     loading: false,
     error: "",
   })
+  const [transcodingAlertOpen, setTranscodingAlertOpen] = useState(false)
   const videoFileInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchDetail(dramaId: string) {
@@ -441,52 +441,32 @@ export default function DramaEditPage() {
       return
     }
 
-    const epLabel = ep.episodeNum != null ? `第${ep.episodeNum}集` : "剧集"
-    const title = `${epLabel} · ${ep.title || "未命名"}`
-
-    setPreview({
-      open: true,
-      title,
-      playUrl: "",
-      loading: true,
-      error: "",
-    })
     setPlayingVideoId(videoId)
 
     try {
       const data = await videoService.play(videoId)
       const status = (data.status ?? "").trim().toUpperCase()
       if (status !== "READY") {
-        setPreview((p) => ({
-          ...p,
-          loading: false,
-          error: `视频尚未转码完成（状态：${data.status || "未知"}）`,
-        }))
+        setTranscodingAlertOpen(true)
         return
       }
       const playUrl = data.playUrl?.trim()
       if (!playUrl) {
-        setPreview((p) => ({
-          ...p,
-          loading: false,
-          error: "播放地址为空",
-        }))
+        toast.error("播放地址为空")
         return
       }
-      setPreview((p) => ({
-        ...p,
-        loading: false,
+      const epLabel = ep.episodeNum != null ? `第${ep.episodeNum}集` : "剧集"
+      const title = `${epLabel} · ${ep.title || "未命名"}`
+      setPreview({
+        open: true,
+        title,
         playUrl,
+        loading: false,
         error: "",
-      }))
+      })
     } catch (e) {
       console.error(e)
       const message = getRequestErrorMessage(e, "获取播放地址失败")
-      setPreview((p) => ({
-        ...p,
-        loading: false,
-        error: message,
-      }))
       toast.error(message)
     } finally {
       setPlayingVideoId(null)
@@ -724,14 +704,13 @@ export default function DramaEditPage() {
     }
   }
 
-  const headerTitle = isCreate ? "新增短剧" : `编辑短剧 ${dramaIdParam}`
+  const headerTitle = isCreate ? "新增短剧" : "编辑短剧"
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{headerTitle}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">基础信息与剧集管理在同一页面维护</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => navigate("/dramas")} disabled={saving}>
@@ -995,13 +974,24 @@ export default function DramaEditPage() {
         error={preview.error}
       />
 
+      <Dialog open={transcodingAlertOpen} onOpenChange={setTranscodingAlertOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>提示</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">视频转码中请稍后</p>
+          <DialogFooter>
+            <Button type="button" onClick={() => setTranscodingAlertOpen(false)}>
+              确定
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={episodeDialogOpen} onOpenChange={setEpisodeDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingEpisodeIndex == null ? "新增剧集" : "编辑剧集"}</DialogTitle>
-            <DialogDescription>
-              选择本地视频：先获取 STS 凭证，再直传 OSS Bucket 域名；上传完成后由 OSS 事件自动触发转码，无需手动回调。
-            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
