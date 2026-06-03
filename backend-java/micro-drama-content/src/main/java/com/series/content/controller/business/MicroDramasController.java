@@ -31,8 +31,23 @@ public class MicroDramasController {
     }
 
     @PostMapping("/saveOrUpdate")
-    public Result<Boolean> saveOrUpdate(@RequestBody MicroDramaDTO dto) {
-        return Result.ok(microDramasService.saveOrUpdateMicroDrama(dto));
+    public Result<String> saveOrUpdate(@RequestBody MicroDramaDTO dto) {
+        String dramaId = microDramasService.saveOrUpdateMicroDrama(dto);
+        return dramaId != null ? Result.ok(dramaId) : Result.error("保存失败");
+    }
+
+    /** 预分配新剧集 ID（新增剧集弹框打开时调用，便于 OSS 直传路径与落库 id 一致） */
+    @GetMapping("/episodes/new-id")
+    public Result<String> newEpisodeId() {
+        return Result.ok(microDramasService.generateNewEpisodeId());
+    }
+
+    /** 删除单集（级联删除关联视频资产） */
+    @PostMapping("/episodes/delete/{episodeId}")
+    public Result<Boolean> deleteEpisode(@PathVariable String episodeId) {
+        return microDramasService.removeEpisode(episodeId)
+                ? Result.ok(true)
+                : Result.error("剧集不存在或删除失败");
     }
 
     @GetMapping("/detail/{dramaId}")

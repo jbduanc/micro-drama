@@ -29,10 +29,24 @@ export const dramaService = {
    * 新增/编辑短剧（含剧集信息）
    * POST /microDramas/saveOrUpdate
    */
-  async saveOrUpdate(dto: MicroDramaDTO): Promise<Result<boolean>> {
-    const res = await contentHttp.post<Result<boolean>>(
+  async saveOrUpdate(dto: MicroDramaDTO): Promise<Result<string>> {
+    const res = await contentHttp.post<Result<string>>(
       "/microDramas/saveOrUpdate",
       dto,
+    )
+    return res.data
+  },
+
+  /** 预分配新剧集 UUID（新增剧集弹框） */
+  async newEpisodeId(): Promise<Result<string>> {
+    const res = await contentHttp.get<Result<string>>("/microDramas/episodes/new-id")
+    return res.data
+  },
+
+  /** 删除单集（服务端级联删除关联视频） */
+  async deleteEpisode(episodeId: string): Promise<Result<boolean>> {
+    const res = await contentHttp.post<Result<boolean>>(
+      `/microDramas/episodes/delete/${episodeId}`,
     )
     return res.data
   },

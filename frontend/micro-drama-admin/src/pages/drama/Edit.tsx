@@ -23,6 +23,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type EpisodeFormState = {
+  /** 剧集 UUID（新增时由后端预分配） */
+  id: string
   episodeNum: string
   title: string
   duration: string
@@ -131,6 +133,7 @@ export default function DramaEditPage() {
   const [episodeDialogOpen, setEpisodeDialogOpen] = useState(false)
   const [editingEpisodeIndex, setEditingEpisodeIndex] = useState<number | null>(null)
   const [episodeForm, setEpisodeForm] = useState<EpisodeFormState>({
+    id: "",
     episodeNum: "",
     title: "",
     duration: "",
@@ -202,7 +205,10 @@ export default function DramaEditPage() {
   }
 
   function resolveEpisodeIdForUpload(episodeNum: number, episodeId?: string): string {
-    if (episodeId?.trim()) return episodeId.trim()
+    const fromArg = episodeId?.trim()
+    if (fromArg) return fromArg
+    const fromForm = episodeForm.id.trim()
+    if (fromForm) return fromForm
     return `num-${episodeNum}`
   }
 
@@ -229,16 +235,28 @@ export default function DramaEditPage() {
     setUploadProgress(null)
   }
 
-  function openCreateEpisode() {
+  async function openCreateEpisode() {
     setEditingEpisodeIndex(null)
     resetEpisodeVideoSession()
+    let episodeId = ""
+    try {
+      const res = await dramaService.newEpisodeId()
+      episodeId = res?.data?.trim() ?? ""
+      if (!episodeId) throw new Error("empty episode id")
+    } catch (e) {
+      console.error(e)
+      toast.error("获取剧集 ID 失败")
+      return
+    }
+    const dramaId = resolveDramaId()
     setEpisodeForm({
+      id: episodeId,
       episodeNum: String(episodes.length + 1),
       title: "",
       duration: "",
       price: "",
       videoAssetId: "",
-      videoFileKey: "",
+      videoFileKey: dramaId ? buildEpisodeRawFileKey(dramaId, episodeId) : "",
     })
     setEpisodeDialogOpen(true)
   }
@@ -253,6 +271,7 @@ export default function DramaEditPage() {
     setEditingEpisodeIndex(indexInAll)
     resetEpisodeVideoSession(ep.videoAssetId ?? "")
     setEpisodeForm({
+      id: ep.id ?? "",
       episodeNum: String(ep.episodeNum ?? ""),
       title: ep.title ?? "",
       duration: ep.duration == null ? "" : String(ep.duration),
@@ -321,14 +340,12 @@ export default function DramaEditPage() {
     if (!title) return null
 
     const dramaUuid = resolveDramaId()
-    if (!dramaUuid) return null
-
     const totalEpisodesNumber = form.totalEpisodes.trim() ? Number(form.totalEpisodes) : undefined
     const priceNumber = form.price.trim() ? Number(form.price) : undefined
     const sortNumber = form.sort.trim() ? Number(form.sort) : undefined
 
     return {
-      id: dramaUuid,
+      ...(dramaUuid ? { id: dramaUuid } : {}),
       title,
       coverUrl: form.coverUrl.trim() ? form.coverUrl.trim() : undefined,
       description: form.description.trim() ? form.description.trim() : undefined,
@@ -347,16 +364,72 @@ export default function DramaEditPage() {
     }
   }
 
-  /** 将当前页面剧集（含 videoAssetId）同步到 content 服务 */
-  async function persistDramaEpisodes(episodeList: DramaEpisode[] = episodes): Promise<void> {
+  /** 保存短剧（基础信息 + 剧集），不跳转列表 */
+  async function saveDramaSilently(
+    episodeList: DramaEpisode[] = episodes,
+    options?: { suppressErrorToast?: boolean },
+  ): Promise<boolean> {
+    const title = form.title.trim()
+    if (!title) {
+      toast.error("请输入短剧名称")
+      setActiveTab("base")
+      return false
+    }
+
+    const totalEpisodesNumber = form.totalEpisodes.trim() ? Number(form.totalEpisodes) : undefined
+    if (totalEpisodesNumber != null && !Number.isInteger(totalEpisodesNumber)) {
+      toast.error("总集数必须为整数")
+      setActiveTab("base")
+      return false
+    }
+
+    const priceNumber = form.price.trim() ? Number(form.price) : undefined
+    if (priceNumber != null && !Number.isFinite(priceNumber)) {
+      toast.error("请输入正确的单剧价格")
+      setActiveTab("base")
+      return false
+    }
+
+    const sortNumber = form.sort.trim() ? Number(form.sort) : undefined
+    if (sortNumber != null && !Number.isInteger(sortNumber)) {
+      toast.error("排序必须为整数")
+      setActiveTab("base")
+      return false
+    }
+
     const payload = buildDramaSavePayload(episodeList)
-    if (!payload?.id) {
-      throw new Error("请先填写短剧名称并保存基础信息")
+    if (!payload) {
+      toast.error("保存数据无效")
+      return false
     }
-    const res = await dramaService.saveOrUpdate(payload)
-    if (!res?.data) {
-      throw new Error(res?.msg || res?.message || "同步短剧失败")
+
+    setSaving(true)
+    try {
+      const res = await dramaService.saveOrUpdate(payload)
+      const savedDramaId = res?.data?.trim()
+      if (!savedDramaId) {
+        throw new Error(res?.msg || res?.message || "保存失败")
+      }
+      setForm((f) => ({ ...f, id: savedDramaId }))
+      return true
+    } catch (e) {
+      console.error(e)
+      if (!options?.suppressErrorToast) {
+        toast.error(getRequestErrorMessage(e, "保存失败"))
+      }
+      return false
+    } finally {
+      setSaving(false)
     }
+  }
+
+  async function handleTabChange(nextTab: string) {
+    const next = nextTab as "base" | "episodes"
+    if (next === "episodes" && activeTab === "base") {
+      const ok = await saveDramaSilently()
+      if (!ok) return
+    }
+    setActiveTab(next)
   }
 
   async function handlePlayEpisode(ep: DramaEpisode) {
@@ -467,8 +540,9 @@ export default function DramaEditPage() {
     const fileKey = episodeForm.videoFileKey.trim()
     const videoChanged = episodeVideoChanged(finalVideoId)
 
+    const episodeUuid = (prevEp?.id ?? episodeForm.id).trim()
     const next: DramaEpisode = {
-      ...(prevEp?.id ? { id: prevEp.id } : {}),
+      ...(episodeUuid ? { id: episodeUuid } : {}),
       episodeNum,
       title,
       duration: toNumberOrUndefined(episodeForm.duration),
@@ -519,13 +593,14 @@ export default function DramaEditPage() {
           e instanceof Error ? e.message : "转码/清理旧视频失败，视频 ID 已写入本页"
       }
 
-      if (dramaId) {
-        try {
-          await persistDramaEpisodes(updatedEpisodes)
-        } catch (e) {
-          console.error(e)
-          syncError = e instanceof Error ? e.message : "同步视频 ID 到服务器失败"
+      try {
+        const synced = await saveDramaSilently(updatedEpisodes, { suppressErrorToast: true })
+        if (!synced) {
+          syncError = "同步短剧与剧集到服务器失败"
         }
+      } catch (e) {
+        console.error(e)
+        syncError = e instanceof Error ? e.message : "同步视频 ID 到服务器失败"
       }
 
       if (videoOpsError && syncError) {
@@ -552,13 +627,30 @@ export default function DramaEditPage() {
     }
   }
 
-  function deleteEpisode(indexInAll: number) {
+  async function deleteEpisode(indexInAll: number) {
     const ep = episodes[indexInAll]
     if (!ep) return
     const confirmed = window.confirm(`确定删除第${ep.episodeNum ?? "-"}集吗？`)
     if (!confirmed) return
+
+    if (ep.id?.trim()) {
+      setSaving(true)
+      try {
+        const res = await dramaService.deleteEpisode(ep.id)
+        if (!res?.data) {
+          throw new Error(res?.msg || res?.message || "删除失败")
+        }
+      } catch (e) {
+        console.error(e)
+        toast.error(getRequestErrorMessage(e, "删除剧集失败"))
+        return
+      } finally {
+        setSaving(false)
+      }
+    }
+
     setEpisodes((prev) => prev.filter((_, idx) => idx !== indexInAll))
-    toast.success("已删除剧集（未提交）")
+    toast.success("已删除剧集")
   }
 
   async function handleSaveAll() {
@@ -620,8 +712,8 @@ export default function DramaEditPage() {
         } satisfies MicroDramaDTO)
 
       const res = await dramaService.saveOrUpdate(payload)
-      const ok = res?.data
-      if (!ok) throw new Error(res?.msg || res?.message || "save failed")
+      const savedId = res?.data?.trim()
+      if (!savedId) throw new Error(res?.msg || res?.message || "save failed")
       toast.success(isCreate ? "新增成功" : "保存成功")
       navigate("/dramas")
     } catch (e) {
@@ -651,7 +743,7 @@ export default function DramaEditPage() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "base" | "episodes")}>
+      <Tabs value={activeTab} onValueChange={(v) => void handleTabChange(v)}>
         <TabsList>
           <TabsTrigger value="base">基础信息</TabsTrigger>
           <TabsTrigger value="episodes">剧集管理</TabsTrigger>
@@ -759,7 +851,7 @@ export default function DramaEditPage() {
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <div>
                 <CardTitle>剧集管理</CardTitle>
-                <CardDescription>每页 12 个剧集块，支持新增、编辑、删除（保存后提交）</CardDescription>
+                <CardDescription>每页 12 个剧集块，支持新增、编辑、删除</CardDescription>
               </div>
               <Button variant="outline" onClick={openCreateEpisode} disabled={saving}>
                 <Plus className="mr-1 h-4 w-4" />

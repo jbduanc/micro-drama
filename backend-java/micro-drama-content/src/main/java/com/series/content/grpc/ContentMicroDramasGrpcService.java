@@ -59,7 +59,8 @@ public class ContentMicroDramasGrpcService extends ContentMicroDramasServiceGrpc
     @Override
     public void saveOrUpdate(MicroDramaSaveOrUpdateRequest request, StreamObserver<BoolResult> responseObserver) {
         MicroDramaDTO dto = fromDetail(request.getDrama());
-        boolean ok = microDramasService.saveOrUpdateMicroDrama(dto);
+        String dramaId = microDramasService.saveOrUpdateMicroDrama(dto);
+        boolean ok = dramaId != null;
         BoolResult resp = BoolResult.newBuilder()
                 .setOk(ok)
                 .setMsg(ok ? "OK" : "FAILED")

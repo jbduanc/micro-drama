@@ -7,6 +7,7 @@ import com.series.content.dto.business.DramaEpisodeDTO;
 import com.series.content.dto.business.MicroDramaDTO;
 import com.series.content.entity.business.DramaEpisodes;
 import com.series.content.entity.business.MicroDramas;
+import com.series.content.client.VideoServiceClient;
 import com.series.content.mapper.business.DramaEpisodesMapper;
 import com.series.content.mapper.business.MicroDramasMapper;
 import com.series.content.service.business.IMicroDramasService;
@@ -28,6 +29,9 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
     @Resource
     private DramaEpisodesMapper dramaEpisodesMapper;
 
+    @Resource
+    private VideoServiceClient videoServiceClient;
+
     @Override
     public List<MicroDramas> list(MicroDramaDTO queryVO) {
         return this.lambdaQuery()
@@ -37,7 +41,7 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean saveOrUpdateMicroDrama(MicroDramaDTO dto) {
+    public String saveOrUpdateMicroDrama(MicroDramaDTO dto) {
         MicroDramas microDramas = new MicroDramas();
         BeanUtils.copyProperties(dto, microDramas, "id");
         if (!StringUtils.hasText(dto.getId())) {
@@ -49,7 +53,7 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
         }
         boolean dramaSaved = this.saveOrUpdate(microDramas);
         if (!dramaSaved) {
-            return false;
+            return null;
         }
         UUID dramaId = microDramas.getId();
 
@@ -82,6 +86,45 @@ public class MicroDramasServiceImpl extends ServiceImpl<MicroDramasMapper, Micro
         microDramas.setTotalEpisodes(episodeCount);
         this.updateById(microDramas);
 
+        return dramaId.toString();
+    }
+
+    @Override
+    public String generateNewEpisodeId() {
+        return UUID.randomUUID().toString();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeEpisode(String episodeId) {
+        UUID id = UuidTypeHandlerSupport.toUuid(episodeId);
+        if (id == null) {
+            return false;
+        }
+        DramaEpisodes episode = dramaEpisodesMapper.selectById(id);
+        if (episode == null) {
+            return false;
+        }
+        UUID dramaId = episode.getDramaId();
+        if (episode.getVideoAssetId() != null) {
+            String videoId = episode.getVideoAssetId().toString();
+            String fileKey = dramaId != null
+                    ? String.format("raw/%s/%s.mp4", dramaId, id)
+                    : null;
+            videoServiceClient.deleteVideoAsset(videoId, fileKey);
+        }
+        dramaEpisodesMapper.deleteById(id);
+        if (dramaId != null) {
+            LambdaQueryWrapper<DramaEpisodes> countWrapper = new LambdaQueryWrapper<>();
+            countWrapper.eq(DramaEpisodes::getDramaId, dramaId);
+            Long count = dramaEpisodesMapper.selectCount(countWrapper);
+            MicroDramas drama = this.getById(dramaId);
+            if (drama != null) {
+                drama.setTotalEpisodes(count == null ? 0 : count.intValue());
+                drama.setUpdateTime(new Date());
+                this.updateById(drama);
+            }
+        }
         return true;
     }
 
