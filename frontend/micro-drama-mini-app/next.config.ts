@@ -7,6 +7,7 @@ const paymentTarget =
   process.env.PAYMENT_API_TARGET ?? "http://127.0.0.1:8081";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**" },
