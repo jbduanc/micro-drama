@@ -19,7 +19,7 @@
 
 | 服务 | 默认端口 | 环境变量 |
 | --- | --- | --- |
-| content-api | 6002 | `CONTENT_API_TARGET` |
+| content-api | 6002 | `CONTENT_API_TARGET` / 生产默认 `https://api.dramadjbo.com/content-api` |
 | video-api | 8080 | `VIDEO_API_TARGET` |
 | payment-api | 8081 | `PAYMENT_API_TARGET` |
 

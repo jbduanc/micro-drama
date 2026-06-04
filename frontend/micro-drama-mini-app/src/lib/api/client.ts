@@ -1,22 +1,15 @@
-function resolveBaseUrl(
-  envKey: "CONTENT" | "VIDEO" | "PAYMENT",
-  fallback: string,
-): string {
-  const map = {
-    CONTENT: process.env.NEXT_PUBLIC_CONTENT_API_BASE,
-    VIDEO: process.env.NEXT_PUBLIC_VIDEO_API_BASE,
-    PAYMENT: process.env.NEXT_PUBLIC_PAYMENT_API_BASE,
-  } as const;
-
-  const value = map[envKey];
-  if (value && value.trim()) return value.trim();
-  return fallback;
-}
+import { resolveApiBase } from "@/config/apiBase";
 
 export const API_BASE = {
-  content: resolveBaseUrl("CONTENT", "/content-api"),
-  video: resolveBaseUrl("VIDEO", "/video-api"),
-  payment: resolveBaseUrl("PAYMENT", "/payment-api"),
+  content: resolveApiBase(
+    process.env.NEXT_PUBLIC_CONTENT_API_BASE,
+    "/content-api",
+  ),
+  video: resolveApiBase(process.env.NEXT_PUBLIC_VIDEO_API_BASE, "/video-api"),
+  payment: resolveApiBase(
+    process.env.NEXT_PUBLIC_PAYMENT_API_BASE,
+    "/payment-api",
+  ),
 };
 
 type RequestOptions = {
