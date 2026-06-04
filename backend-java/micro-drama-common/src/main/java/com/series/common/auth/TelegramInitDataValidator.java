@@ -83,8 +83,8 @@ public final class TelegramInitDataValidator {
             if (eq <= 0) {
                 continue;
             }
-            String key = URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8);
-            String value = URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8);
+            String key = URLDecoder.decode(pair.substring(0, eq), "UTF-8");
+            String value = URLDecoder.decode(pair.substring(eq + 1), "UTF-8");
             map.put(key, value);
         }
         return map;
