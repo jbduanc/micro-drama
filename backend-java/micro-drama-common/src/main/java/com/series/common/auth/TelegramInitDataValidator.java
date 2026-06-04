@@ -2,6 +2,7 @@ package com.series.common.auth;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -77,15 +78,19 @@ public final class TelegramInitDataValidator {
 
     private static Map<String, String> parseQuery(String initData) {
         Map<String, String> map = new TreeMap<>();
-        String[] pairs = initData.split("&");
-        for (String pair : pairs) {
-            int eq = pair.indexOf('=');
-            if (eq <= 0) {
-                continue;
+        try {
+            String[] pairs = initData.split("&");
+            for (String pair : pairs) {
+                int eq = pair.indexOf('=');
+                if (eq <= 0) {
+                    continue;
+                }
+                String key = URLDecoder.decode(pair.substring(0, eq), "UTF-8");
+                String value = URLDecoder.decode(pair.substring(eq + 1), "UTF-8");
+                map.put(key, value);
             }
-            String key = URLDecoder.decode(pair.substring(0, eq), "UTF-8");
-            String value = URLDecoder.decode(pair.substring(eq + 1), "UTF-8");
-            map.put(key, value);
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8", e);
         }
         return map;
     }
