@@ -1,10 +1,4 @@
-// Package config 负责加载应用配置。
-//
-// 约定：业务配置（HTTP/OSS/DB/Kafka 等）只来自 Consul KV：config/micro-drama-video/data
-// 本地/容器仅通过环境变量提供 Consul 连接信息：
-//   - CONSUL_HOST、CONSUL_PORT、CONSUL_TOKEN
-//   - VIDEO_CONSUL_ENABLED（可选，默认 true）
-//   - VIDEO_CONSUL_DISCOVERY_ENABLED（可选，本地调试建议 false）
+// Package config 负责加载应用配置（外挂 YAML + 环境变量，无 Consul）。
 package config
 
 import (
@@ -14,29 +8,19 @@ import (
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
-	"micro-drama-video/internal/consul"
 )
 
-// Load 加载配置：引导项 → 拉取 Consul KV → 校验必填项 → 映射结构体。
+// Load 加载配置：外挂 YAML → 校验 → 映射结构体。
 func Load(log *zap.Logger) (*Config, error) {
 	if log == nil {
 		log = zap.NewNop()
 	}
 	v := viper.New()
 	setBootstrapDefaults(v)
-	applyLocalConsulOverrides(v)
-
-	if !v.GetBool("consul_enabled") {
-		return nil, fmt.Errorf("consul_enabled must be true: business config is only loaded from Consul KV")
-	}
-
-	if err := consul.MergeRemoteConfig(v, log); err != nil {
+	if err := loadFromFile(v); err != nil {
 		return nil, err
 	}
-	applyLocalConsulOverrides(v)
-
-	if err := validateAfterConsul(v); err != nil {
+	if err := validateRequired(v); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +36,6 @@ func Load(log *zap.Logger) (*Config, error) {
 		zap.String("ossBucket", c.OSS.Bucket),
 		zap.String("dbName", c.DB.Name),
 		zap.Bool("kafkaEnabled", c.Kafka.Enabled),
-		zap.Bool("consulDiscovery", c.Consul.DiscoveryEnabled),
 	)
 	return c, nil
 }
@@ -121,8 +104,8 @@ func envBool(key string) (bool, bool) {
 	}
 }
 
-// validateAfterConsul 校验 Consul KV 中必须包含的业务配置项。
-func validateAfterConsul(v *viper.Viper) error {
+// validateRequired 校验必须包含的业务配置项。
+func validateRequired(v *viper.Viper) error {
 	missing := make([]string, 0)
 
 	require := func(key string) {
@@ -153,7 +136,7 @@ func validateAfterConsul(v *viper.Viper) error {
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("missing required config in Consul KV (config/micro-drama-video/data): %s", strings.Join(missing, ", "))
+		return fmt.Errorf("missing required config in application.yaml: %s", strings.Join(missing, ", "))
 	}
 	return nil
 }
@@ -212,6 +195,11 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	c.DB.Password = v.GetString("db_password")
 	c.DB.Name = v.GetString("db_name")
 	c.DB.SSLMode = v.GetString("db_sslmode")
+
+	c.JWT.Secret = firstNonEmpty(
+		v.GetString("jwt_secret"),
+		os.Getenv("JWT_SECRET"),
+	)
 
 	if c.Playback.URLExpireSeconds <= 0 {
 		c.Playback.URLExpireSeconds = 3600
@@ -324,7 +312,20 @@ type Config struct {
 		PublicBaseURL    string // 公网播放域名（CDN/Cloudflare），如 https://video.dramadjbo.com
 	}
 
+	JWT struct {
+		Secret string // 与 Java 服务 jwt.secret 一致，校验 admin/user Bearer
+	}
+
 	DB DBConfig
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, s := range values {
+		if strings.TrimSpace(s) != "" {
+			return strings.TrimSpace(s)
+		}
+	}
+	return ""
 }
 
 // DBConfig 数据库连接配置。

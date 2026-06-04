@@ -1,0 +1,3 @@
+grpc_addr: ":9092"
+eth_rpc_http: ""
+eth_ws: ""

@@ -1,62 +1,32 @@
 package com.series.content.utils;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.series.common.auth.AuthAudience;
+import com.series.common.auth.JwtTokenService;
+import com.series.common.auth.ValidatedToken;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.util.Optional;
 
 /**
- * 与 micro-drama-admin 共用同一套 Redis 键与签发规则，便于管理端登录态直接访问内容服务。
+ * 内容服务：管理端（aud=admin）与小程序用户（aud=user）均可访问读接口。
  */
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String secret;
-
-    @Value("${jwt.access-expire}")
-    private Long accessExpire;
+    private static final AuthAudience[] CONTENT_AUDIENCES = {
+            AuthAudience.ADMIN,
+            AuthAudience.USER
+    };
 
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private JwtTokenService jwtTokenService;
 
-    public String generateToken(String email) {
-        return Jwts.builder()
-                .setSubject(email)
-                .setExpiration(new Date(System.currentTimeMillis() + accessExpire))
-                .signWith(SignatureAlgorithm.HS256, secret)
-                .compact();
+    public Optional<ValidatedToken> validate(String token) {
+        return jwtTokenService.validateAny(token, CONTENT_AUDIENCES);
     }
 
-    public String getEmail(String token) {
-        return Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
-    }
-
-    public boolean isValidate(String token) {
-        try {
-            if (Boolean.TRUE.equals(redisTemplate.hasKey("admin:blacklist:" + token))) {
-                return false;
-            }
-
-            String email = getEmail(token);
-            String redisKey = "admin:login:token:" + email;
-            String cachedToken = redisTemplate.opsForValue().get(redisKey);
-            if (cachedToken == null || !cachedToken.equals(token)) {
-                return false;
-            }
-
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+    public Optional<ValidatedToken> validateSession(String token) {
+        return jwtTokenService.sessionValidAny(token, CONTENT_AUDIENCES);
     }
 }

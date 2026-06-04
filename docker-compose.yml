@@ -1,0 +1,72 @@
+# 本地 / 预发：统一 Docker 网络服务发现（hostname = 服务名），配置外挂 deploy/config/
+# 启动：docker compose up -d
+networks:
+  micro-drama:
+    name: micro-drama-net
+
+services:
+  micro-drama-admin:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-admin:latest
+    build:
+      context: ./backend-java/micro-drama-admin
+    networks: [micro-drama]
+    ports: ["6001:8080"]
+    volumes:
+      - ./deploy/config/micro-drama-admin:/config:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+
+  micro-drama-content:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-content:latest
+    build:
+      context: ./backend-java/micro-drama-content
+    networks: [micro-drama]
+    ports: ["6002:8080", "9091:9091"]
+    volumes:
+      - ./deploy/config/micro-drama-content:/config:ro
+    environment:
+      VIDEO_SERVICE_BASE_URL: http://micro-drama-video:8080
+
+  micro-drama-user:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-user:latest
+    build:
+      context: ./backend-java/micro-drama-user
+    networks: [micro-drama]
+    ports: ["6003:8080"]
+    volumes:
+      - ./deploy/config/micro-drama-user:/config:ro
+
+  micro-drama-payment:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-payment:latest
+    build:
+      context: ./backend-java/micro-drama-payment
+    networks: [micro-drama]
+    ports: ["8081:8080"]
+    volumes:
+      - ./deploy/config/micro-drama-payment:/config:ro
+    depends_on: [micro-drama-chain]
+    environment:
+      CHAIN_GRPC_ADDRESS: static://micro-drama-chain:9092
+
+  micro-drama-chain:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-chain:latest
+    build:
+      context: ./backend-go/micro-drama-chain
+    networks: [micro-drama]
+    ports: ["9092:9092"]
+    volumes:
+      - ./deploy/config/micro-drama-chain:/config:ro
+
+  micro-drama-video:
+    image: ${NEXUS_DOCKER_HOST:-docker.dramadjbo.com}/backend-micro-drama-video:latest
+    build:
+      context: ./backend-go/micro-drama-video
+    networks: [micro-drama]
+    ports: ["8080:8080"]
+    volumes:
+      - ./deploy/config/micro-drama-video:/config:ro
+
+  redis:
+    image: redis:7-alpine
+    networks: [micro-drama]
+    ports: ["6379:6379"]

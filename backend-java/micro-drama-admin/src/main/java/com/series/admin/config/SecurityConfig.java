@@ -29,14 +29,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 // 权限配置
                 .authorizeRequests()
-                // 登录接口放行（兼容网关 URL 带 /admin-api 前缀而应用未设 context-path）
+                // 登录/OAuth 与 Actuator 放行（Kong 路由 strip_path 后路径与无前缀一致）
                 .antMatchers(
                         "/oauth2/login/google",
                         "/oauth2/authorize-url",
                         "/admin-api/oauth2/login/google",
-                        "/admin-api/oauth2/authorize-url"
+                        "/admin-api/oauth2/authorize-url",
+                        "/actuator/**",
+                        "/admin-api/actuator/**"
                 ).permitAll()
-                // 其他所有接口 → 必须登录
                 .anyRequest().authenticated();
 
         // 把JWT过滤器添加到 UsernamePasswordAuthenticationFilter 之前

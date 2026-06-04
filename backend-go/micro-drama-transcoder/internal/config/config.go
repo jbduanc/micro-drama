@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"micro-drama-transcoder/internal/consul"
 )
 
 type Config struct {
@@ -71,17 +70,9 @@ func Load(log *zap.Logger) (*Config, error) {
 	}
 	v := viper.New()
 	setBootstrapDefaults(v)
-	applyLocalConsulOverrides(v)
-
-	if !v.GetBool("consul_enabled") {
-		return nil, fmt.Errorf("consul_enabled must be true: business config is only loaded from Consul KV")
-	}
-
-	if err := consul.MergeRemoteConfig(v, log); err != nil {
+	if err := loadFromFile(v); err != nil {
 		return nil, err
 	}
-	applyLocalConsulOverrides(v)
-
 	if err := validateAfterConsul(v); err != nil {
 		return nil, err
 	}

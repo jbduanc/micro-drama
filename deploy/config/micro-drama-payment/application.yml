@@ -1,0 +1,11 @@
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-change-me}
+
+grpc:
+  client:
+    chain-service:
+      address: static://micro-drama-chain:9092
+      negotiation-type: plaintext

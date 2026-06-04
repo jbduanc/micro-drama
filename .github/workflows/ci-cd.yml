@@ -27,8 +27,12 @@ on:
         description: 构建 backend-go/micro-drama-video（镜像 backend-micro-drama-video）
         type: boolean
         default: true
-      build_payment:
-        description: 构建 backend-go/micro-drama-payment（镜像 backend-micro-drama-payment）
+      build_chain:
+        description: 构建 backend-go/micro-drama-chain（镜像 backend-micro-drama-chain）
+        type: boolean
+        default: true
+      build_java_payment:
+        description: 构建 backend-java/micro-drama-payment（镜像 backend-micro-drama-payment）
         type: boolean
         default: true
       build_frontend:
@@ -63,7 +67,8 @@ jobs:
       content: ${{ steps.filter.outputs.content }}
       transcoder: ${{ steps.filter.outputs.transcoder }}
       video: ${{ steps.filter.outputs.video }}
-      payment: ${{ steps.filter.outputs.payment }}
+      chain: ${{ steps.filter.outputs.chain }}
+      java_payment: ${{ steps.filter.outputs.java_payment }}
       frontend_admin: ${{ steps.filter.outputs.frontend_admin }}
       frontend_mini_app: ${{ steps.filter.outputs.frontend_mini_app }}
     steps:
@@ -93,8 +98,12 @@ jobs:
               - 'backend-go/micro-drama-transcoder/**'
             video:
               - 'backend-go/micro-drama-video/**'
-            payment:
-              - 'backend-go/micro-drama-payment/**'
+            chain:
+              - 'backend-go/micro-drama-chain/**'
+            java_payment:
+              - 'backend-java/micro-drama-payment/**'
+              - 'backend-java/micro-drama-parent/**'
+              - 'backend-java/micro-drama-common/**'
             frontend_admin:
               - 'frontend/micro-drama-admin/**'
             frontend_mini_app:
@@ -108,7 +117,9 @@ jobs:
       needs.changes.outputs.admin == 'true' ||
       needs.changes.outputs.user == 'true' ||
       needs.changes.outputs.content == 'true' ||
-      needs.changes.outputs.transcoder == 'true'
+      needs.changes.outputs.transcoder == 'true' ||
+      needs.changes.outputs.chain == 'true' ||
+      needs.changes.outputs.java_payment == 'true'
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -602,15 +613,15 @@ jobs:
           echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
           exit 1
 
-  build-payment:
+  build-chain:
     runs-on: ubuntu-latest
     needs: [changes]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_payment == true) ||
-      (github.event_name == 'push' && needs.changes.outputs.payment == 'true')
+      (github.event_name == 'workflow_dispatch' && inputs.build_chain == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.chain == 'true')
     env:
-      IMAGE_NAME: backend-micro-drama-payment
-      DEPLOY_SERVICE: backend-payment
+      IMAGE_NAME: backend-micro-drama-chain
+      DEPLOY_SERVICE: backend-chain
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -621,10 +632,10 @@ jobs:
           go-version: "1.22"
 
       - name: Go 编译校验
-        working-directory: backend-go/micro-drama-payment
+        working-directory: backend-go/micro-drama-chain
         run: |
           go mod download
-          go build -o /dev/null ./cmd/payment
+          go build -o /dev/null ./cmd/chain
 
       - name: 配置 Docker 私服
         run: |
@@ -643,7 +654,75 @@ jobs:
           set -e
           TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
           REG="${{ env.NEXUS_DOCKER_HOST }}"
-          cd backend-go/micro-drama-payment
+          cd backend-go/micro-drama-chain
+          docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
+          docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
+
+      - name: Webhook 部署
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_deploy_webhook == false }}
+        continue-on-error: true
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          set -e
+          tmp=$(mktemp)
+          code=$(curl -sS -o "$tmp" -w "%{http_code}" -X POST "${{ env.DEPLOY_WEBHOOK_URL }}" \
+               -H "X-Deploy-Token: $DEPLOY_TOKEN" \
+               -H "Content-Type: application/json" \
+               -d '{"services":"${{ env.DEPLOY_SERVICE }}"}')
+          echo "Deploy webhook HTTP $code — response:"
+          cat "$tmp" || true
+          rm -f "$tmp"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then
+            echo "Deploy webhook OK for ${{ env.DEPLOY_SERVICE }}"
+            exit 0
+          fi
+          echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
+          exit 1
+
+  build-java-payment:
+    runs-on: ubuntu-latest
+    needs: [changes, backend-common]
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.build_java_payment == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.java_payment == 'true')
+    env:
+      IMAGE_NAME: backend-micro-drama-payment
+      DEPLOY_SERVICE: backend-payment
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK8
+        uses: actions/setup-java@v4
+        with:
+          java-version: "8"
+          distribution: "temurin"
+
+      - name: Maven 构建
+        run: |
+          set -e
+          mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
+          mvn -f backend-java/micro-drama-payment/pom.xml clean package -DskipTests
+
+      - name: 配置 Docker 私服
+        run: |
+          echo "{\"insecure-registries\": [\"${{ env.NEXUS_DOCKER_HOST }}\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: 登录 Nexus Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_DOCKER_HOST }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Docker build & push
+        run: |
+          set -e
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || 'latest' }}"
+          REG="${{ env.NEXUS_DOCKER_HOST }}"
+          cd backend-java/micro-drama-payment
           docker build -t "${REG}/${{ env.IMAGE_NAME }}:${TAG}" .
           docker push "${REG}/${{ env.IMAGE_NAME }}:${TAG}"
 

@@ -1,0 +1,11 @@
+http_addr: ":8080"
+jwt_secret: ""
+kafka_enabled: false
+oss_endpoint: ""
+oss_access_key: ""
+oss_secret_key: ""
+oss_bucket: ""
+db_host: ""
+db_name: ""
+db_user: ""
+db_password: ""

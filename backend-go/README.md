@@ -6,7 +6,7 @@
 
 - **目录**：`micro-drama-video/`
 - **入口**：`cmd/video-api/main.go`
-- **技术**：Gin + Consul + 阿里云 OSS + Kafka 生产者 + PostgreSQL（转码由 `micro-drama-transcoder` 消费 Kafka 完成）
+- **技术**：Gin + 外挂 YAML 配置 + 阿里云 OSS + Kafka + PostgreSQL（转码由 `micro-drama-transcoder` 消费 Kafka 完成）
 
 ### 环境变量（前缀 `VIDEO_`）
 
@@ -27,25 +27,25 @@
 
 当前 **FFmpeg / 上传 HLS** 在 `internal/worker` 内为可跑通的占位逻辑，接入真实源文件与 S3 后替换即可。
 
-## micro-drama-payment（Web3 支付）
+## micro-drama-chain（链上交互）
 
-- **目录**：`micro-drama-payment/`
-- **入口**：`cmd/payment/main.go`
-- **技术**：Gin + Viper + Zap + go-ethereum（HTTP RPC；链上监听可再接 WS）
+- **目录**：`micro-drama-chain/`
+- **入口**：`cmd/chain/main.go`
+- **技术**：gRPC + **go-ethereum**（EVM 海外主流 SDK）+ 外挂 `config/application.yaml`
 
-### 环境变量（前缀 `PAYMENT_`）
+| 配置项 | 说明 |
+|--------|------|
+| `grpc_addr` | gRPC 监听，默认 `:9092` |
+| `eth_rpc_http` | JSON-RPC HTTP |
+| `eth_ws` | 预留 WS 订阅 |
 
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `PAYMENT_HTTP_ADDR` | 监听地址 | `:8080` |
-| `PAYMENT_ETH_RPC_HTTP` | 可选；不配置则链功能仅占位 | `https://...` |
-| `PAYMENT_ETH_WS` | 预留：日志订阅 | `wss://...` |
+由 `micro-drama-payment`（Java）经 gRPC 调用：`CreatePendingOrder`、`SendRawTransaction`。
 
-### HTTP
+## micro-drama-payment（Java 支付）
 
-- `GET /healthz`
-- `POST /v1/orders` body: `{"id":"order-1"}`
-- `POST /v1/tx/raw` body: `{"signedHex":"0x..."}`（待实现发链）
+- **目录**：`backend-java/micro-drama-payment/`
+- **HTTP**：`POST /v1/orders`、`POST /v1/tx/raw`（小程序 `payment-api`）
+- **gRPC 客户端**：`static://micro-drama-chain:9092`
 
 ## micro-drama-transcoder
 

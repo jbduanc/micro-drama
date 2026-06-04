@@ -10,7 +10,7 @@ function isLocalHostname(hostname: string): boolean {
 /** 将误配的 www 同源 API 纠正为 api 网关 */
 function normalizeConfiguredBase(
   value: string,
-  pathPrefix: "/content-api" | "/video-api" | "/payment-api",
+  pathPrefix: "/content-api" | "/video-api" | "/payment-api" | "/user-api",
 ): string {
   const trimmed = value.trim();
   try {
@@ -42,7 +42,7 @@ function isLocalDevRuntime(): boolean {
  */
 export function resolveApiBase(
   envValue: string | undefined,
-  pathPrefix: "/content-api" | "/video-api" | "/payment-api",
+  pathPrefix: "/content-api" | "/video-api" | "/payment-api" | "/user-api",
 ): string {
   if (envValue != null && String(envValue).trim() !== "") {
     return normalizeConfiguredBase(String(envValue), pathPrefix);

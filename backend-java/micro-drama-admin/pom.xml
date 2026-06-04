@@ -31,16 +31,6 @@
         </dependency>
 
         <!-- Consul KV 配置中心（Hoxton BOM 管理版本；启动阶段加载，优先级高于 application*.yml） -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-consul-config</artifactId>
-        </dependency>
-        <!-- Consul 服务注册与发现 -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-consul-discovery</artifactId>
-        </dependency>
-
         <!-- Spring Boot OAuth2 客户端（严格对齐 2.2.5.RELEASE 版本） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

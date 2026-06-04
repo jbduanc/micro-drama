@@ -3,10 +3,27 @@ spring:
     name: micro-drama-admin
   profiles:
     active: local
+  config:
+    additional-location: optional:file:/config/application.yml,optional:file:./config/application.yml
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
 
 # PostgreSQL UUID 主键（如 sys_user.id）需 TypeHandler；与 SqlSessionFactoryBeanCustomizer 双保险
 mybatis-plus:
   type-handlers-package: com.series.common.typehandler
+
+# 与 content / user 共用密钥；生产由 Consul 覆盖。Kong JWT 插件需配置相同 secret。
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-change-me}
+  access-expire: ${JWT_ACCESS_EXPIRE:7200000}
+
+# off=本地直连完整 JWT 校验；kong=经 Kong 网关时仅 Redis 会话/黑名单（签名由 Kong JWT 插件校验）
+auth:
+  gateway:
+    mode: ${AUTH_GATEWAY_MODE:off}
 
 management:
   health:

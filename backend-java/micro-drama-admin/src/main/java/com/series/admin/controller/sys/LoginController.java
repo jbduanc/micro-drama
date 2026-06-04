@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -28,7 +27,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/oauth2")
@@ -54,15 +52,9 @@ public class LoginController {
     @Autowired
     private ISysUserService sysUserService;
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
-    @Autowired
     private RestTemplate restTemplate;
     @Autowired
     private ClientRegistrationRepository clientRegistrationRepository;
-
-    // 新增：注入JWT过期时间配置
-    @Value("${jwt.access-expire}")
-    private Long accessExpire;
 
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String googleRedirectUri;
@@ -171,10 +163,9 @@ public class LoginController {
             sysUserService.updateById(user);
         }
 
-        // 5. 生成 JWT 并存入 Redis
+        // 5. 生成 JWT（aud=admin）并存入 Redis；受保护路由由 Kong JWT 插件 + 本服务会话校验
         String token = jwtUtil.generateToken(email);
-        String redisKey = "admin:login:token:" + email;
-        redisTemplate.opsForValue().set(redisKey, token, accessExpire, TimeUnit.MILLISECONDS);
+        jwtUtil.storeLoginToken(email, token);
 
         return Result.ok(token);
     }
@@ -186,12 +177,10 @@ public class LoginController {
         // 解析token获取用户邮箱
         String email = jwtUtil.getEmail(token);
 
-        // 1. 删除Redis中的登录态缓存
         if (email != null) {
-            redisTemplate.delete("admin:login:token:" + email);
+            jwtUtil.revokeLoginToken(email);
         }
-        // 2. 加入黑名单（兜底，防止token未过期但已登出）
-        redisTemplate.opsForValue().set("admin:blacklist:" + token, "1", 15, TimeUnit.MINUTES);
+        jwtUtil.blacklistToken(token);
 
         return Result.ok("注销成功");
     }

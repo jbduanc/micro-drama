@@ -1,6 +1,7 @@
 import { resolveApiBase } from "@/config/apiBase";
 
 export const API_BASE = {
+  user: resolveApiBase(process.env.NEXT_PUBLIC_USER_API_BASE, "/user-api"),
   content: resolveApiBase(
     process.env.NEXT_PUBLIC_CONTENT_API_BASE,
     "/content-api",

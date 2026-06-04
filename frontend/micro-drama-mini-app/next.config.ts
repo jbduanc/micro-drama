@@ -3,8 +3,10 @@ import type { NextConfig } from "next";
 const contentTarget =
   process.env.CONTENT_API_TARGET ?? "http://127.0.0.1:6002";
 const videoTarget = process.env.VIDEO_API_TARGET ?? "http://127.0.0.1:8080";
+/** Java micro-drama-payment（docker-compose 映射 8081→8080） */
 const paymentTarget =
   process.env.PAYMENT_API_TARGET ?? "http://127.0.0.1:8081";
+const userTarget = process.env.USER_API_TARGET ?? "http://127.0.0.1:6003";
 
 const nextConfig: NextConfig = {
   output: "standalone",
@@ -27,6 +29,10 @@ const nextConfig: NextConfig = {
       {
         source: "/payment-api/:path*",
         destination: `${paymentTarget}/:path*`,
+      },
+      {
+        source: "/user-api/:path*",
+        destination: `${userTarget}/:path*`,
       },
     ];
   },

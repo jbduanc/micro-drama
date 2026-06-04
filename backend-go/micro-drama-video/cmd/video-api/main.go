@@ -3,7 +3,7 @@
 // 本服务职责（与 micro-drama-transcoder 分工）：
 //   - 提供 HTTP API：预签名直传原片（前端 PUT OSS）+ 上传完成回调发 Kafka
 //   - 提供 HTTP API：播放鉴权（订单校验预留 + HLS 预签名 URL，token 独立返回）
-//   - 注册到 Consul，供 Kong / Java 服务发现
+//   - 通过 Docker/K8s 网络服务名暴露（如 micro-drama-video:8080）
 //
 // 启动方式：go run ./cmd/video-api  或运行编译后的 video-api 二进制。
 package main
@@ -19,8 +19,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"micro-drama-video/internal/auth"
 	"micro-drama-video/internal/config"
-	"micro-drama-video/internal/consul"
 	"micro-drama-video/internal/handler"
 	"micro-drama-video/internal/kafka"
 	"micro-drama-video/internal/repository"
@@ -88,17 +88,10 @@ func main() {
 	r := gin.New()
 	// Recovery：捕获 handler 内 panic，避免整个进程崩溃。
 	r.Use(gin.Recovery())
+	r.Use(auth.GinMiddleware(cfg.JWT.Secret, []string{"admin", "user"}, "/healthz", "/v1/video/oss-event"))
 	handler.Register(r, log, svc)
 
-	// ---------- 4. Consul 服务注册（本地调试可设 VIDEO_CONSUL_DISCOVERY_ENABLED=false 跳过）----------
-	deregister, err := consul.RegisterService(cfg.Viper(), log, cfg.HTTPAddr, "/healthz")
-	if err != nil {
-		log.Fatal("startup failed at consul register", zap.Error(err))
-	}
-	// 进程退出时从 Consul 注销，避免 Kong 继续转发到已下线实例。
-	defer deregister()
-
-	// ---------- 5. 启动 HTTP Server ----------
+	// ---------- 4. 启动 HTTP Server ----------
 	// 使用标准库 http.Server，便于优雅关闭（Graceful Shutdown）。
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: r}
 

@@ -1,66 +1,46 @@
 package com.series.admin.utils;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.series.common.auth.AuthAudience;
+import com.series.common.auth.JwtTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
-
+/**
+ * 管理端 JWT，受众 {@link AuthAudience#ADMIN}；签名校验可由 Kong 网关承担（{@code auth.gateway.mode=kong}）。
+ */
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String secret;
-
-    @Value("${jwt.access-expire}")
-    private Long accessExpire;
+    private static final AuthAudience AUDIENCE = AuthAudience.ADMIN;
 
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private JwtTokenService jwtTokenService;
 
-    // 生成Token
     public String generateToken(String email) {
-        return Jwts.builder()
-                .setSubject(email)
-                .setExpiration(new Date(System.currentTimeMillis() + accessExpire))
-                .signWith(SignatureAlgorithm.HS256, secret)
-                .compact();
+        return jwtTokenService.generateToken(email, AUDIENCE);
     }
 
-    // 解析邮箱
     public String getEmail(String token) {
-        return Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        return jwtTokenService.getSubject(token);
     }
 
-    // 校验Token是否有效（未拉黑 + 登录态存在 + 签名/过期正常）
     public boolean isValidate(String token) {
-        try {
-            // 1. 检查是否在黑名单
-            if (Boolean.TRUE.equals(redisTemplate.hasKey("admin:blacklist:" + token))) {
-                return false;
-            }
+        return jwtTokenService.isValidate(token, AUDIENCE);
+    }
 
-            // 2. 解析邮箱，检查Redis中的登录态是否存在且匹配
-            String email = getEmail(token);
-            String redisKey = "admin:login:token:" + email;
-            String cachedToken = redisTemplate.opsForValue().get(redisKey);
-            if (cachedToken == null || !cachedToken.equals(token)) {
-                return false;
-            }
+    public boolean isSessionValid(String token) {
+        return jwtTokenService.isSessionValid(token, AUDIENCE);
+    }
 
-            // 3. 检查签名和过期时间
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            // 解析失败/异常均视为无效
-            return false;
-        }
+    public void storeLoginToken(String email, String token) {
+        jwtTokenService.storeLoginToken(email, AUDIENCE, token);
+    }
+
+    public void revokeLoginToken(String email) {
+        jwtTokenService.revokeLoginToken(email, AUDIENCE);
+    }
+
+    public void blacklistToken(String token) {
+        jwtTokenService.blacklistToken(token, AUDIENCE, 15);
     }
 }

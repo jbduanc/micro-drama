@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package microdrama.chain.v1;
+
+option go_package = "micro-drama-chain/api/gen/chain/v1;chainv1";
+
+import "google/protobuf/empty.proto";
+
+service ChainService {
+  rpc Health (google.protobuf.Empty) returns (HealthResponse);
+  rpc CreatePendingOrder (CreateOrderRequest) returns (OrderResponse);
+  rpc SendRawTransaction (SendRawTransactionRequest) returns (SendRawTransactionResponse);
+}
+
+message HealthResponse {
+  bool ok = 1;
+  string eth_connected = 2;
+}
+
+message CreateOrderRequest {
+  string order_id = 1;
+}
+
+message OrderResponse {
+  string id = 1;
+  string status = 2;
+}
+
+message SendRawTransactionRequest {
+  string signed_hex = 1;
+}
+
+message SendRawTransactionResponse {
+  string tx_hash = 1;
+}

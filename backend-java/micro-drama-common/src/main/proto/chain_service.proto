@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package microdrama.chain.v1;
+
+option java_package = "com.series.common.grpc.chain.v1";
+option java_multiple_files = true;
+option java_outer_classname = "ChainServiceProto";
+
+import "google/protobuf/empty.proto";
+
+// 链上交互（由 micro-drama-chain Go 服务实现）
+service ChainService {
+  rpc Health (google.protobuf.Empty) returns (HealthResponse);
+  rpc CreatePendingOrder (CreateOrderRequest) returns (OrderResponse);
+  rpc SendRawTransaction (SendRawTransactionRequest) returns (SendRawTransactionResponse);
+}
+
+message HealthResponse {
+  bool ok = 1;
+  string eth_connected = 2;
+}
+
+message CreateOrderRequest {
+  string order_id = 1;
+}
+
+message OrderResponse {
+  string id = 1;
+  string status = 2;
+}
+
+message SendRawTransactionRequest {
+  string signed_hex = 1;
+}
+
+message SendRawTransactionResponse {
+  string tx_hash = 1;
+}

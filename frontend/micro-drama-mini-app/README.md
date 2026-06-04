@@ -11,7 +11,7 @@
 | 我的 | `/profile` | 头像、余额、支付/观看记录 |
 
 - 短剧详情 `/dramas/[id]`：SSR + JSON-LD + Open Graph，利于 SEO
-- 解锁支付：余额 / Web2（占位）/ Web3（对接 `backend-go/micro-drama-payment`）
+- 解锁支付：余额 / Web2（占位）/ Web3（`backend-java/micro-drama-payment` → gRPC `backend-go/micro-drama-chain`）
 - 播放鉴权：对接 `backend-go/micro-drama-video` `/v1/video/play`
 - 内容数据：对接 `backend-java/micro-drama-content` `/microDramas/*`
 

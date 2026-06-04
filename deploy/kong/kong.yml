@@ -1,0 +1,40 @@
+_format_version: "3.0"
+
+# 上游使用 Docker 网络 hostname（与 docker-compose / K8s Service 名一致）
+services:
+  - name: micro-drama-admin
+    url: http://micro-drama-admin:8080
+    routes:
+      - name: admin-api
+        paths: [/admin-api]
+        strip_path: true
+
+  - name: micro-drama-user
+    url: http://micro-drama-user:8080
+    routes:
+      - name: user-api
+        paths: [/user-api]
+        strip_path: true
+
+  - name: micro-drama-content
+    url: http://micro-drama-content:8080
+    routes:
+      - name: content-api
+        paths: [/content-api]
+        strip_path: true
+
+  - name: micro-drama-payment
+    url: http://micro-drama-payment:8080
+    routes:
+      - name: payment-api
+        paths: [/payment-api]
+        strip_path: true
+
+  - name: micro-drama-video
+    url: http://micro-drama-video:8080
+    routes:
+      - name: video-api
+        paths: [/video-api]
+        strip_path: true
+
+# micro-drama-chain 仅 gRPC :9092，不经 Kong HTTP 暴露

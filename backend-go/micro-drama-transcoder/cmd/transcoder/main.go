@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 
 	"micro-drama-transcoder/internal/config"
-	"micro-drama-transcoder/internal/consul"
 	"micro-drama-transcoder/internal/kafka"
 	"micro-drama-transcoder/internal/service"
 	"micro-drama-transcoder/internal/storage"
@@ -48,13 +47,6 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// Consul service discovery registration (optional via consul_discovery_enabled)
-	deregister, err := consul.RegisterService(cfg.Viper(), logger, cfg.HTTPAddr, "/healthz")
-	if err != nil {
-		logger.Fatal("consul register failed", zap.Error(err))
-	}
-	defer deregister()
 
 	// Run consumer loop
 	go func() {

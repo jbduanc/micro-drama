@@ -3,6 +3,32 @@ spring:
     name: micro-drama-user
   profiles:
     active: local
+  config:
+    additional-location: optional:file:/config/application.yml,optional:file:./config/application.yml
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+
+mybatis-plus:
+  type-handlers-package: com.series.common.typehandler
+
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-change-me}
+  access-expire: ${JWT_ACCESS_EXPIRE:7200000}
+
+auth:
+  gateway:
+    mode: ${AUTH_GATEWAY_MODE:off}
+  dev:
+    enabled: ${AUTH_DEV_ENABLED:false}
+
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
 
 management:
   health:

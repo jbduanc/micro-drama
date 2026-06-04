@@ -1,4 +1,5 @@
 import { API_BASE, apiFetch } from "@/lib/api/client";
+import { authHeaders } from "@/lib/auth/token";
 import type { PaymentOrder } from "@/types";
 
 type CreateOrderResponse = {
@@ -9,6 +10,7 @@ type CreateOrderResponse = {
 export async function createWeb3Order(orderId: string): Promise<CreateOrderResponse> {
   return apiFetch<CreateOrderResponse>(API_BASE.payment, "/v1/orders", {
     method: "POST",
+    headers: authHeaders(),
     body: { id: orderId },
   });
 }
@@ -16,6 +18,7 @@ export async function createWeb3Order(orderId: string): Promise<CreateOrderRespo
 export async function submitSignedTx(signedHex: string): Promise<{ txHash: string }> {
   return apiFetch<{ txHash: string }>(API_BASE.payment, "/v1/tx/raw", {
     method: "POST",
+    headers: authHeaders(),
     body: { signedHex },
   });
 }
