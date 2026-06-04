@@ -746,6 +746,10 @@ jobs:
       - name: 前端编译 (npm)
         if: steps.gate.outputs.build == 'true' && matrix.package_manager == 'npm'
         working-directory: ${{ matrix.dir }}
+        env:
+          NEXT_PUBLIC_CONTENT_API_BASE: https://api.dramadjbo.com/content-api
+          NEXT_PUBLIC_VIDEO_API_BASE: https://api.dramadjbo.com/video-api
+          NEXT_PUBLIC_PAYMENT_API_BASE: https://api.dramadjbo.com/payment-api
         run: |
           set -e
           test -f package.json || { echo "::error::$PWD 下无 package.json"; ls -la; exit 1; }

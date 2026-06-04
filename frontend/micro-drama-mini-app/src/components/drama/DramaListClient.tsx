@@ -48,10 +48,12 @@ export function DramaListClient() {
         setRows((prev) => (append ? [...prev, ...res.rows] : res.rows));
       } catch (e) {
         if (loadId !== loadIdRef.current) return;
+        const msg =
+          e instanceof Error ? e.message : "加载失败，请稍后重试";
         setError(
-          e instanceof Error
-            ? e.message
-            : "加载失败，请检查 content-api 与 JWT 配置",
+          msg.includes("Internal Server Error") || msg.includes("500")
+            ? "内容服务异常，请确认已部署最新版本且 API 指向 api.dramadjbo.com"
+            : msg || "加载失败，请检查 JWT 或网络",
         );
         if (!append) setRows([]);
       } finally {
