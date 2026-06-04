@@ -31,7 +31,7 @@ on:
         description: 构建 backend-go/micro-drama-chain（镜像 backend-micro-drama-chain）
         type: boolean
         default: true
-      build_java_payment:
+      build_payment:
         description: 构建 backend-java/micro-drama-payment（镜像 backend-micro-drama-payment）
         type: boolean
         default: true
@@ -68,7 +68,7 @@ jobs:
       transcoder: ${{ steps.filter.outputs.transcoder }}
       video: ${{ steps.filter.outputs.video }}
       chain: ${{ steps.filter.outputs.chain }}
-      java_payment: ${{ steps.filter.outputs.java_payment }}
+      payment: ${{ steps.filter.outputs.payment }}
       frontend_admin: ${{ steps.filter.outputs.frontend_admin }}
       frontend_mini_app: ${{ steps.filter.outputs.frontend_mini_app }}
     steps:
@@ -100,7 +100,7 @@ jobs:
               - 'backend-go/micro-drama-video/**'
             chain:
               - 'backend-go/micro-drama-chain/**'
-            java_payment:
+            payment:
               - 'backend-java/micro-drama-payment/**'
               - 'backend-java/micro-drama-parent/**'
               - 'backend-java/micro-drama-common/**'
@@ -119,7 +119,7 @@ jobs:
       needs.changes.outputs.content == 'true' ||
       needs.changes.outputs.transcoder == 'true' ||
       needs.changes.outputs.chain == 'true' ||
-      needs.changes.outputs.java_payment == 'true'
+      needs.changes.outputs.payment == 'true'
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -680,12 +680,12 @@ jobs:
           echo "::warning::Deploy webhook failed for ${{ env.DEPLOY_SERVICE }}（镜像已推送）。请核对部署端是否识别 services 名称并查看 deploy 服务日志。"
           exit 1
 
-  build-java-payment:
+  build-payment:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_java_payment == true) ||
-      (github.event_name == 'push' && needs.changes.outputs.java_payment == 'true')
+      (github.event_name == 'workflow_dispatch' && inputs.build_payment == true) ||
+      (github.event_name == 'push' && needs.changes.outputs.payment == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-payment
       DEPLOY_SERVICE: backend-payment
@@ -698,8 +698,28 @@ jobs:
         with:
           java-version: "8"
           distribution: "temurin"
+          cache: maven
 
-      - name: Maven 构建
+      - name: 生成 Maven 配置
+        run: |
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>maven-releases</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+              <server>
+                <id>maven-snapshots</id>
+                <username>${{ secrets.NEXUS_USERNAME }}</username>
+                <password>${{ secrets.NEXUS_PASSWORD }}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
+      - name: Maven 构建 — micro-drama-payment
         run: |
           set -e
           mvn -f backend-java/micro-drama-common/pom.xml clean install -DskipTests
