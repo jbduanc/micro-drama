@@ -1,3 +1,8 @@
+server:
+  port: ${SERVER_PORT:6001}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:/admin-api}
+
 spring:
   application:
     name: micro-drama-admin
@@ -5,6 +10,11 @@ spring:
     active: local
   config:
     additional-location: optional:file:/config/application.yml,optional:file:./config/application.yml
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}

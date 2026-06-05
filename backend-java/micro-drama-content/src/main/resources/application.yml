@@ -5,6 +5,11 @@ spring:
     active: local
   config:
     additional-location: optional:file:/config/application.yml,optional:file:./config/application.yml
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
@@ -16,7 +21,9 @@ mybatis-plus:
   type-handlers-package: com.series.common.typehandler
 
 server:
-  port: 0
+  port: ${SERVER_PORT:6002}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:/content-api}
 
 grpc:
   server:

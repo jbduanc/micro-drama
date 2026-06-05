@@ -35,3 +35,26 @@ auth:
 ## compose 示例
 
 见 `deploy/docker-compose-services.example.yml`（注意 volume 路径为 `backend-*`，不是 `micro-drama-*`）。
+
+Java 服务在 compose 中建议注入（与 `application.yml` / JAR 内 `${DB_*}` 占位符对应）：
+
+```yaml
+environment:
+  - DB_HOST=postgres
+  - DB_PORT=5432
+  - DB_NAME=postgres
+  - DB_USER=postgres
+  - DB_PASSWORD=***
+  - REDIS_HOST=redis
+  - REDIS_PORT=6379
+  - REDIS_PASSWORD=***
+  - JWT_SECRET=***
+```
+
+## 启动失败：`url attribute is not specified`
+
+1. 查看外挂配置是否含 **`spring.datasource.url`**（缩进须在 `spring:` 下）：
+   `cat config/backend-user/application.yml`
+2. 进容器确认挂载：`docker compose run --rm --no-deps backend-user cat /config/application.yml`
+3. 若外挂文件缺 datasource，可从 `application.yml.example` 复制整段 `spring.datasource`，或依赖 JAR 内默认 + 上述 `DB_*` 环境变量（需**重新构建镜像**）。
+4. 勿在 `application.yml` 里写未在 compose 中声明的占位符（如 `${DB_URL}`），否则 url 会解析为空。
