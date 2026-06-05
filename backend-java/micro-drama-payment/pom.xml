@@ -29,6 +29,10 @@
             <version>2.13.1.RELEASE</version>
         </dependency>
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-inprocess</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.drama</groupId>
             <artifactId>micro-drama-common</artifactId>
             <version>1.0.1-SNAPSHOT</version>
