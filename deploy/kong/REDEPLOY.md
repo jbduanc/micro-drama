@@ -106,3 +106,31 @@ docker compose -f docker-compose-kong.yml run --rm deck-sync
 ```
 
 无需删库，除非要完全重置。
+
+## 8. 故障排查
+
+### GET 受保护接口 500（JWT pre-function）
+
+`kong.yml` 使用 Kong 内置 `resty.openssl` 做 HS256 校验，**无需** `lua-resty-jwt` 自定义镜像。
+
+在 `kong` 服务环境变量配置：
+
+```yaml
+KONG_UNTRUSTED_LUA: "on"
+KONG_NGINX_MAIN_ENV: JWT_SECRET
+```
+
+> `KONG_UNTRUSTED_LUA_SANDBOX_ENVIRONMENT` **不能**用来开放 `os.getenv`（它只暴露 `kong.request` 等全局对象）。
+> strict 沙箱下没有 `os.getenv`，须 `KONG_UNTRUSTED_LUA=on` 并把 `JWT_SECRET` 注入 nginx（`KONG_NGINX_MAIN_ENV`）。
+
+更新 `kong.yml` 后 deck sync，并 `docker compose -f docker-compose-kong.yml up -d kong`。
+
+若仍 500，查看 `docker logs kong`；若 401 检查 `JWT_SECRET` 是否与各服务 `jwt.secret` 一致。
+
+### GET 受保护接口 401（`x-kong-response-latency: 0`）
+
+密钥**字符串相同**仍 401 时，常见原因是 **jjwt 0.9.1 把 `jwt.secret` 当 Base64 解码后再 HMAC**，而 Kong pre-function 用**原始字符串**验签，签名对不上（`reason: sig`）。
+
+**方案 A（推荐）**：重新构建并部署 Java 服务（`JwtTokenService` 已改为 UTF-8 字节密钥，与 Kong / Go 一致），用户需重新登录拿新 token。
+
+**方案 B（暂不重建 Java）**：在 Kong pre-function 里对 `JWT_SECRET` 先 `ngx.decode_base64` 再 HMAC（与当前线上 jjwt 行为一致）。Java 按方案 A 上线后须改回原始字符串验签。

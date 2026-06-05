@@ -40,6 +40,9 @@ services:
     container_name: kong
     depends_on:
       - postgres-kong
+    # 直接注入 .env，避免 shell 里旧的 JWT_SECRET 覆盖 compose 插值
+    env_file:
+      - .env
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres-kong
@@ -51,8 +54,10 @@ services:
       KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
       # Manager 访问 Admin API 的地址（按你公网 IP/域名改）
       KONG_ADMIN_GUI_API_URL: "http://127.0.0.1:3001"
-      # 与所有 backend 服务 jwt.secret 一致（勿提交 Git，用 .env 或 export）
-      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      # JWT_SECRET 由 env_file: .env 注入（勿在 environment 重复写 ${JWT_SECRET}，易被 shell 环境覆盖）
+      # pre-function 读取 JWT_SECRET：strict 沙箱无 os.getenv，须 lax + 注入 nginx env
+      KONG_UNTRUSTED_LUA: "on"
+      KONG_NGINX_MAIN_ENV: JWT_SECRET
     ports:
       - "3000:8000"   # 对外 HTTP 代理（生产建议前面再加 HTTPS 反代）
       - "3001:8001"   # Admin API — 建议仅内网或 SSH 隧道，勿对公网开放

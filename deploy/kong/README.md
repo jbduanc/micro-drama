@@ -48,7 +48,7 @@ deck sync -s deploy/kong/kong.yml
 - `GET /user-api/auth/user/info`、`POST /user-api/auth/logout` 及所有其它 `/user-api/**`
 - `/content-api/**`、`/payment-api/**`（除上表免登）、`/video-api/**`（除上表免登）
 
-校验逻辑见 `kong.yml` 中 **pre-function**（HS256 + `aud` + 注入 `X-Auth-Subject` / `X-Auth-Audience`）。
+校验逻辑见 `kong.yml` 中 **pre-function**（Kong 内置 `resty.openssl` HS256 + `aud` + 注入 `X-Auth-Subject` / `X-Auth-Audience`；无需自定义镜像）。
 
 ## 下游取登录人
 

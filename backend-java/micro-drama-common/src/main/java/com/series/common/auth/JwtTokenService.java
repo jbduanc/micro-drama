@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -37,7 +38,8 @@ public class JwtTokenService {
                 .setSubject(subject)
                 .claim(CLAIM_AUD, audience.getValue())
                 .setExpiration(new Date(System.currentTimeMillis() + accessExpire))
-                .signWith(SignatureAlgorithm.HS256, secret)
+                // jjwt 0.9.1 String overload base64-decodes; use UTF-8 bytes to match Kong / Go
+                .signWith(SignatureAlgorithm.HS256, secret.getBytes(StandardCharsets.UTF_8))
                 .compact();
     }
 
@@ -90,7 +92,7 @@ public class JwtTokenService {
             if (!passesRedisChecks(token, aud, claims.getSubject())) {
                 return Optional.empty();
             }
-            Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
+            Jwts.parser().setSigningKey(secret.getBytes(StandardCharsets.UTF_8)).parseClaimsJws(token);
             return Optional.of(new ValidatedToken(claims.getSubject(), aud));
         } catch (Exception e) {
             return Optional.empty();
@@ -147,7 +149,7 @@ public class JwtTokenService {
 
     private Claims parseClaims(String token) {
         return Jwts.parser()
-                .setSigningKey(secret)
+                .setSigningKey(secret.getBytes(StandardCharsets.UTF_8))
                 .parseClaimsJws(token)
                 .getBody();
     }
