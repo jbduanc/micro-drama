@@ -1,0 +1,45 @@
+# 复制为 application.yml 后填入真实值；勿将含密钥文件提交到 Git
+server:
+  port: 6001
+  servlet:
+    context-path: /admin-api
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/platform_db
+    username: postgres
+    password: "${DB_PASSWORD}"
+    driver-class-name: org.postgresql.Driver
+  redis:
+    host: redis
+    port: 6379
+    password: "${REDIS_PASSWORD}"
+    database: 0
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "${GOOGLE_CLIENT_ID}"
+            client-secret: "${GOOGLE_CLIENT_SECRET}"
+            redirect-uri: https://admin.dramadjbo.com/oauth/callback
+            scope: openid,email,profile
+
+jwt:
+  secret: "${JWT_SECRET}"
+  access-expire: 900000
+  refresh-expire: 604800000
+
+auth:
+  gateway:
+    mode: kong
+
+cors:
+  allowed-origins: https://admin.dramadjbo.com
+
+grpc:
+  client:
+    content:
+      enabled: true
+      address: "static://backend-content:9091"
+      negotiationType: PLAINTEXT

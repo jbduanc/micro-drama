@@ -1,0 +1,80 @@
+# 生产示例：~/services/docker-compose-services.yml
+# 配置目录须与 volumes 一致：./config/backend-admin → 容器 /config
+version: '3.8'
+
+networks:
+  default:
+    name: app-network
+    external: true
+
+services:
+  backend-admin:
+    image: 127.0.0.1:8082/backend-micro-drama-admin:latest
+    container_name: backend-admin
+    volumes:
+      - ./config/backend-admin:/config:ro
+    ports:
+      - "6001:6001"
+    restart: unless-stopped
+
+  backend-content:
+    image: 127.0.0.1:8082/backend-micro-drama-content:latest
+    container_name: backend-content
+    volumes:
+      - ./config/backend-content:/config:ro
+    ports:
+      - "6002:6002"
+    restart: unless-stopped
+
+  backend-user:
+    image: 127.0.0.1:8082/backend-micro-drama-user:latest
+    container_name: backend-user
+    volumes:
+      - ./config/backend-user:/config:ro
+    ports:
+      - "6003:6003"
+    restart: unless-stopped
+
+  backend-payment:
+    image: 127.0.0.1:8082/backend-micro-drama-payment:latest
+    container_name: backend-payment
+    volumes:
+      - ./config/backend-payment:/config:ro
+    environment:
+      - CHAIN_GRPC_ADDRESS=static://backend-chain:9092
+    ports:
+      - "6004:6004"
+    depends_on:
+      - backend-chain
+    restart: unless-stopped
+
+  backend-video:
+    image: 127.0.0.1:8082/backend-micro-drama-video:latest
+    container_name: backend-video
+    volumes:
+      - ./config/backend-video:/config:ro
+    environment:
+      - CONFIG_FILE=/config/application.yml
+    ports:
+      - "6005:6005"
+    restart: unless-stopped
+
+  backend-transcoder:
+    image: 127.0.0.1:8082/backend-micro-drama-transcoder:latest
+    container_name: backend-transcoder
+    volumes:
+      - ./config/backend-transcoder:/config:ro
+    environment:
+      - CONFIG_FILE=/config/application.yml
+    ports:
+      - "6006:6006"
+    restart: unless-stopped
+
+  backend-chain:
+    image: 127.0.0.1:8082/backend-micro-drama-chain:latest
+    container_name: backend-chain
+    volumes:
+      - ./config/backend-chain:/config:ro
+    ports:
+      - "6007:9092"
+    restart: unless-stopped

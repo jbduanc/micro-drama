@@ -1,0 +1,4 @@
+# gRPC 监听 9092（compose 映射 6007:9092）
+grpc_addr: ":9092"
+eth_rpc_http: ""
+eth_ws: ""

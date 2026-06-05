@@ -8,17 +8,13 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// GinMiddleware 校验 Bearer JWT（HS256），允许 admin / user 访问 video-api。
+// GinMiddleware 经 Kong 时信任 X-Auth-Subject；本地直连时校验 Bearer JWT（HS256）。
 func GinMiddleware(secret string, allowedAudiences []string, skipPaths ...string) gin.HandlerFunc {
 	allowed := make(map[string]struct{}, len(allowedAudiences))
 	for _, a := range allowedAudiences {
 		allowed[a] = struct{}{}
 	}
 	return func(c *gin.Context) {
-		if secret == "" {
-			c.Next()
-			return
-		}
 		path := c.Request.URL.Path
 		for _, skip := range skipPaths {
 			if path == skip || strings.HasPrefix(path, skip) {
@@ -26,6 +22,22 @@ func GinMiddleware(secret string, allowedAudiences []string, skipPaths ...string
 				return
 			}
 		}
+
+		if sub, aud, ok := PrincipalFromKong(c); ok {
+			if _, ok := allowed[aud]; !ok {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "audience not allowed"})
+				return
+			}
+			ApplyPrincipal(c, sub, aud)
+			c.Next()
+			return
+		}
+
+		if secret == "" {
+			c.Next()
+			return
+		}
+
 		auth := c.GetHeader("Authorization")
 		if !strings.HasPrefix(auth, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing bearer token"})
@@ -56,11 +68,7 @@ func GinMiddleware(secret string, allowedAudiences []string, skipPaths ...string
 			return
 		}
 		sub, _ := claims["sub"].(string)
-		c.Set("jwt_sub", sub)
-		c.Set("jwt_aud", aud)
-		if c.GetHeader("X-User-Id") == "" && aud == "user" {
-			c.Request.Header.Set("X-User-Id", sub)
-		}
+		ApplyPrincipal(c, sub, aud)
 		c.Next()
 	}
 }

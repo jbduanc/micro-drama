@@ -1,7 +1,9 @@
 package com.series.payment.filter;
 
 import com.series.common.auth.GatewayAuthProperties;
+import com.series.common.auth.GatewayAuthSupport;
 import com.series.common.auth.GatewayPathSupport;
+import com.series.common.auth.JwtPrincipal;
 import com.series.payment.utils.UserJwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -34,24 +37,39 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            unauthorized(response);
-            return;
+        try {
+            Optional<JwtPrincipal> principal = resolvePrincipal(request);
+            if (!principal.isPresent() || !principal.get().isUser()) {
+                unauthorized(response);
+                return;
+            }
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(principal.get(), null, Collections.emptyList()));
+            filterChain.doFilter(request, response);
+        } finally {
+            SecurityContextHolder.clearContext();
         }
-        String token = authHeader.substring(7).trim();
-        boolean valid = gatewayAuthProperties.isKongMode()
-                && GatewayPathSupport.isKongProxied(request)
-                ? userJwtUtil.isSessionValid(token)
-                : userJwtUtil.isValidate(token);
-        if (!valid) {
-            unauthorized(response);
-            return;
+    }
+
+    private Optional<JwtPrincipal> resolvePrincipal(HttpServletRequest request) {
+        if (GatewayPathSupport.isKongProxied(request)) {
+            Optional<JwtPrincipal> fromKong = GatewayAuthSupport.principalFromKong(request);
+            if (!fromKong.isPresent()) {
+                return Optional.empty();
+            }
+            if (gatewayAuthProperties.isKongMode()) {
+                String token = GatewayAuthSupport.bearerToken(request);
+                if (token != null && !userJwtUtil.isSessionValid(token)) {
+                    return Optional.empty();
+                }
+            }
+            return fromKong;
         }
-        String userId = userJwtUtil.getUserId(token);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList()));
-        filterChain.doFilter(request, response);
+        String token = GatewayAuthSupport.bearerToken(request);
+        if (token == null || !userJwtUtil.isValidate(token)) {
+            return Optional.empty();
+        }
+        return Optional.of(new JwtPrincipal(userJwtUtil.getUserId(token), com.series.common.auth.AuthAudience.USER));
     }
 
     private static void unauthorized(HttpServletResponse response) throws IOException {

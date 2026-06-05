@@ -1,0 +1,26 @@
+server:
+  port: 6004
+  servlet:
+    context-path: /payment-api
+
+spring:
+  config:
+    additional-location: optional:file:/config/application.yml
+  redis:
+    host: redis
+    port: 6379
+    password: "${REDIS_PASSWORD}"
+
+jwt:
+  secret: "${JWT_SECRET}"
+  access-expire: 900000
+
+auth:
+  gateway:
+    mode: kong
+
+grpc:
+  client:
+    chain-service:
+      address: static://backend-chain:9092
+      negotiation-type: plaintext

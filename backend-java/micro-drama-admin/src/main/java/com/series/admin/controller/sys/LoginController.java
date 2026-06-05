@@ -163,7 +163,7 @@ public class LoginController {
             sysUserService.updateById(user);
         }
 
-        // 5. 生成 JWT（aud=admin）并存入 Redis；受保护路由由 Kong JWT 插件 + 本服务会话校验
+        // 5. 生成 JWT（aud=admin）并存入 Redis；受保护路由由 Kong 统一校验
         String token = jwtUtil.generateToken(email);
         jwtUtil.storeLoginToken(email, token);
 

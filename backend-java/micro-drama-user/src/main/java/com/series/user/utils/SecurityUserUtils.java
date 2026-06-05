@@ -1,14 +1,17 @@
 package com.series.user.utils;
 
+import com.series.common.auth.GatewayAuthContext;
 import com.series.user.entity.AppUser;
 import com.series.user.service.IAppUserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.UUID;
 
+/**
+ * 获取当前小程序用户。身份来自 Kong 注入的 {@code X-Auth-Subject}（用户 UUID），不经本服务 JWT 校验。
+ */
 @Component
 public class SecurityUserUtils {
 
@@ -23,11 +26,7 @@ public class SecurityUserUtils {
     }
 
     public static String getCurrentUserId() {
-        try {
-            return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        } catch (Exception e) {
-            return null;
-        }
+        return GatewayAuthContext.getUserId().orElse(null);
     }
 
     public static AppUser getCurrentUser() {

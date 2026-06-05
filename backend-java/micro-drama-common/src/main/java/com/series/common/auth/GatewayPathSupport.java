@@ -20,7 +20,7 @@ public final class GatewayPathSupport {
         if (path == null || path.isEmpty()) {
             return "/";
         }
-        for (String prefix : new String[]{"/admin-api", "/user-api", "/content-api"}) {
+        for (String prefix : new String[]{"/admin-api", "/user-api", "/content-api", "/payment-api", "/video-api"}) {
             if (path.startsWith(prefix + "/")) {
                 path = path.substring(prefix.length());
                 break;

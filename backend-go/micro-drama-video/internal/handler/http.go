@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"micro-drama-video/internal/auth"
 	"micro-drama-video/internal/response"
 	"micro-drama-video/internal/service"
 )
@@ -55,7 +56,7 @@ func stsUploadHandler(log *zap.Logger, svc *service.VideoService) gin.HandlerFun
 			DramaID:     req.DramaID,
 			EpisodeID:   req.EpisodeID,
 			ContentType: req.ContentType,
-			UserID:      c.GetHeader("X-User-Id"),
+			UserID:      auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Error("sts", zap.Error(err))
@@ -117,13 +118,13 @@ func uploadURLHandler(log *zap.Logger, svc *service.VideoService) gin.HandlerFun
 		log.Info("http upload-url request",
 			zap.String("dramaId", req.DramaID),
 			zap.String("episodeId", req.EpisodeID),
-			zap.String("userId", c.GetHeader("X-User-Id")),
+			zap.String("userId", auth.GetUserID(c)),
 		)
 		out, err := svc.CreateUploadURL(c.Request.Context(), &service.UploadURLInput{
 			DramaID:     req.DramaID,
 			EpisodeID:   req.EpisodeID,
 			ContentType: req.ContentType,
-			UserID:      c.GetHeader("X-User-Id"),
+			UserID:      auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Error("upload-url", zap.Error(err))
@@ -162,7 +163,7 @@ func uploadCompleteHandler(log *zap.Logger, svc *service.VideoService) gin.Handl
 			EpisodeID: req.EpisodeID,
 			Etag:      req.Etag,
 			SizeBytes: req.SizeBytes,
-			UserID:    c.GetHeader("X-User-Id"),
+			UserID:    auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Error("upload-complete", zap.Error(err))
@@ -192,7 +193,7 @@ func notifyTranscodeHandler(log *zap.Logger, svc *service.VideoService) gin.Hand
 			EpisodeID: req.EpisodeID,
 			Etag:      req.Etag,
 			SizeBytes: req.SizeBytes,
-			UserID:    c.GetHeader("X-User-Id"),
+			UserID:    auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Error("notify-transcode", zap.Error(err))
@@ -231,7 +232,7 @@ func deleteVideosHandler(log *zap.Logger, svc *service.VideoService) gin.Handler
 		out, err := svc.DeleteVideos(c.Request.Context(), &service.DeleteVideosInput{
 			Items:           items,
 			PreserveRawPath: req.PreserveRawPath,
-			UserID:          c.GetHeader("X-User-Id"),
+			UserID:          auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Error("delete videos", zap.Error(err))
@@ -254,7 +255,7 @@ func playHandler(log *zap.Logger, svc *service.VideoService) gin.HandlerFunc {
 		out, err := svc.PlayAuth(c.Request.Context(), &service.PlayInput{
 			VideoID: videoID,
 			OrderID: orderID,
-			UserID:  c.GetHeader("X-User-Id"),
+			UserID:  auth.GetUserID(c),
 		})
 		if err != nil {
 			log.Warn("play auth", zap.Error(err), zap.String("videoId", videoID))

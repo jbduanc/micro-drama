@@ -1,0 +1,22 @@
+http_addr: ":6006"
+
+kafka_enabled: true
+kafka_brokers: "kafka-server:9092"
+kafka_group_id: micro-drama-transcoder
+kafka_topic_upload_completed: "content.video.upload_completed"
+kafka_topic_transcode_completed: "video.transcode.completed"
+kafka_topic_transcode_failed: "video.transcode.failed"
+
+oss_endpoint: "${OSS_ENDPOINT}"
+oss_access_key: "${OSS_ACCESS_KEY}"
+oss_secret_key: "${OSS_SECRET_KEY}"
+oss_bucket: "${OSS_BUCKET}"
+oss_use_ssl: true
+oss_region: ap-southeast-1
+
+transcode_temp_dir: "/tmp"
+transcode_ffmpeg_path: "ffmpeg"
+transcode_hls_segment_seconds: 6
+transcode_hls_prefix: "hls"
+transcode_variants: "480p:854x480:800,720p:1280x720:2500,1080p:1920x1080:5000"
+transcode_keep_work_dir: false

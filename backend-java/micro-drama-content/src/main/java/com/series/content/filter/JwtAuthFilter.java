@@ -1,6 +1,7 @@
 package com.series.content.filter;
 
 import com.series.common.auth.GatewayAuthProperties;
+import com.series.common.auth.GatewayAuthSupport;
 import com.series.common.auth.GatewayPathSupport;
 import com.series.common.auth.JwtPrincipal;
 import com.series.common.auth.ValidatedToken;
@@ -40,36 +41,55 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "未提供有效令牌");
-            return;
+        try {
+            Optional<JwtPrincipal> principal = resolvePrincipal(request);
+            if (!principal.isPresent()) {
+                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "未提供有效令牌");
+                return;
+            }
+
+            JwtPrincipal p = principal.get();
+            if (p.isUser() && ContentAuthPolicy.requiresAdmin(path)) {
+                writeJson(response, HttpServletResponse.SC_FORBIDDEN, "需要管理端登录");
+                return;
+            }
+
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(p, null, Collections.emptyList()));
+            filterChain.doFilter(request, response);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private Optional<JwtPrincipal> resolvePrincipal(HttpServletRequest request) {
+        if (GatewayPathSupport.isKongProxied(request)) {
+            Optional<JwtPrincipal> fromKong = GatewayAuthSupport.principalFromKong(request);
+            if (!fromKong.isPresent()) {
+                return Optional.empty();
+            }
+            if (gatewayAuthProperties.isKongMode()) {
+                String token = GatewayAuthSupport.bearerToken(request);
+                if (token != null) {
+                    Optional<ValidatedToken> session = jwtUtil.validateSession(token);
+                    if (!session.isPresent()) {
+                        return Optional.empty();
+                    }
+                    JwtPrincipal p = fromKong.get();
+                    if (!session.get().getSubject().equals(p.getSubject())
+                            || session.get().getAudience() != p.getAudience()) {
+                        return Optional.empty();
+                    }
+                }
+            }
+            return fromKong;
         }
 
-        String token = authHeader.substring(7).trim();
-        Optional<ValidatedToken> validated = gatewayAuthProperties.isKongMode()
-                && GatewayPathSupport.isKongProxied(request)
-                ? jwtUtil.validateSession(token)
-                : jwtUtil.validate(token);
-
-        if (!validated.isPresent()) {
-            writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, "令牌无效或已过期");
-            return;
+        String token = GatewayAuthSupport.bearerToken(request);
+        if (token == null) {
+            return Optional.empty();
         }
-
-        ValidatedToken vt = validated.get();
-        if (vt.getAudience() == com.series.common.auth.AuthAudience.USER
-                && ContentAuthPolicy.requiresAdmin(path)) {
-            writeJson(response, HttpServletResponse.SC_FORBIDDEN, "需要管理端登录");
-            return;
-        }
-
-        JwtPrincipal principal = new JwtPrincipal(vt.getSubject(), vt.getAudience());
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-
-        filterChain.doFilter(request, response);
+        return jwtUtil.validate(token).map(vt -> new JwtPrincipal(vt.getSubject(), vt.getAudience()));
     }
 
     private static void writeJson(HttpServletResponse response, int status, String message) throws IOException {

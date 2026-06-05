@@ -1,0 +1,83 @@
+# 生产示例：~/kong/docker-compose-kong.yml
+# 与业务 compose 共用 app-network；业务服务名 backend-admin:6001 等须已启动
+version: '3.8'
+
+networks:
+  default:
+    name: app-network
+    external: true
+
+services:
+  postgres-kong:
+    image: postgres:13
+    container_name: postgres-kong
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kong
+    volumes:
+      - ./postgres-kong-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  kong-migrations:
+    image: kong:3.4
+    container_name: kong-migrations
+    depends_on:
+      - postgres-kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres-kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PG_DATABASE: kong
+    command: kong migrations bootstrap
+    restart: on-failure
+    networks:
+      - default
+
+  kong:
+    image: kong:3.4
+    container_name: kong
+    depends_on:
+      - postgres-kong
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres-kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PG_DATABASE: kong
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
+      # Manager 访问 Admin API 的地址（按你公网 IP/域名改）
+      KONG_ADMIN_GUI_API_URL: "http://127.0.0.1:3001"
+      # 与所有 backend 服务 jwt.secret 一致（勿提交 Git，用 .env 或 export）
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    ports:
+      - "3000:8000"   # 对外 HTTP 代理（生产建议前面再加 HTTPS 反代）
+      - "3001:8001"   # Admin API — 建议仅内网或 SSH 隧道，勿对公网开放
+      - "3002:8002"   # Kong Manager UI
+    restart: unless-stopped
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 一次性导入 deploy/kong/kong.yml（也可在宿主机用 deck 命令代替）
+  deck-sync:
+    image: kong/deck:latest
+    container_name: kong-deck-sync
+    depends_on:
+      kong:
+        condition: service_healthy
+    volumes:
+      - ./kong.yml:/kong.yml:ro
+    command: ["gateway", "sync", "-s", "/kong.yml", "--kong-addr", "http://kong:8001"]
+    networks:
+      - default
+    restart: "no"
+    profiles:
+      - sync

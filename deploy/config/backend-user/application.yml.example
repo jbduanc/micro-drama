@@ -1,0 +1,32 @@
+server:
+  port: 6003
+  servlet:
+    context-path: /user-api
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/user_db
+    username: postgres
+    password: "${DB_PASSWORD}"
+    driver-class-name: org.postgresql.Driver
+  redis:
+    host: redis
+    port: 6379
+    password: "${REDIS_PASSWORD}"
+    database: 0
+
+jwt:
+  secret: "${JWT_SECRET}"
+  access-expire: 900000
+
+auth:
+  gateway:
+    mode: kong
+
+telegram:
+  bot-token: "${TELEGRAM_BOT_TOKEN}"
+
+auth.dev.enabled: false
+
+cors:
+  allowed-origins: https://your-mini-app-domain

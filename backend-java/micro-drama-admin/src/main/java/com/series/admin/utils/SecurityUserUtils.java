@@ -3,14 +3,13 @@ package com.series.admin.utils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.series.admin.entity.sys.SysUser;
 import com.series.admin.service.sys.ISysUserService;
+import com.series.common.auth.GatewayAuthContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 
 /**
- * 全局获取当前登录管理员信息工具类
- * 适配：Spring Security + JWT + PostgreSQL
+ * 获取当前管理员信息。身份来自 Kong 注入的 {@code X-Auth-Subject}（邮箱），不经本服务 JWT 校验。
  */
 @Component
 public class SecurityUserUtils {
@@ -38,15 +37,7 @@ public class SecurityUserUtils {
      * @return 邮箱 | null(未登录)
      */
     public static String getCurrentUserEmail() {
-        try {
-            // 从Security上下文获取登录用户邮箱
-            return (String) SecurityContextHolder.getContext()
-                    .getAuthentication()
-                    .getPrincipal();
-        } catch (Exception e) {
-            // 未登录/上下文异常返回null
-            return null;
-        }
+        return GatewayAuthContext.getAdminEmail().orElse(null);
     }
 
     /**

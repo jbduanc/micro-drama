@@ -1,0 +1,30 @@
+# Go 服务：挂载为 /config/application.yml 或 application.yaml（CONFIG_FILE 可指定）
+http_addr: ":6005"
+
+jwt_secret: "${JWT_SECRET}"
+
+kafka_enabled: true
+kafka_brokers: "kafka-server:9092"
+kafka_topic_upload_completed: "content.video.upload_completed"
+kafka_topic_transcode_completed: "video.transcode.completed"
+kafka_topic_transcode_failed: "video.transcode.failed"
+kafka_consumer_group: micro-drama-video
+
+oss_endpoint: "${OSS_ENDPOINT}"
+oss_access_key: "${OSS_ACCESS_KEY}"
+oss_secret_key: "${OSS_SECRET_KEY}"
+oss_bucket: "${OSS_BUCKET}"
+oss_use_ssl: true
+oss_region: ap-southeast-1
+oss_upload_prefix: raw
+oss_hls_prefix: hls
+oss_sts_role_arn: "${OSS_STS_ROLE_ARN}"
+oss_sts_duration_seconds: 3600
+
+playback_url_expire_seconds: 3600
+playback_hls_key_template: "hls/{dramaId}/{episodeId}/index.m3u8"
+playback_require_ready: true
+playback_token_secret: "${PLAYBACK_TOKEN_SECRET}"
+playback_public_base_url: https://video.dramadjbo.com
+
+db_dsn: "postgres://postgres:${DB_PASSWORD}@postgres:5432/video_db?sslmode=disable"

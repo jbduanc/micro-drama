@@ -14,18 +14,42 @@ func loadFromFile(v *viper.Viper) error {
 	if path == "" {
 		path = "/config/application.yaml"
 	}
-	v.SetConfigFile(path)
-	v.SetConfigType("yaml")
-	if err := v.ReadInConfig(); err != nil {
-		v.SetConfigFile("config/application.yaml")
-		if err2 := v.ReadInConfig(); err2 != nil {
-			return fmt.Errorf("read config %q: %w", path, err)
+	if err := readConfigFile(v, path); err != nil {
+		var lastErr = err
+		for _, fallback := range []string{
+			"/config/application.yml",
+			"config/application.yaml",
+			"config/application.yml",
+		} {
+			if fallback == path {
+				continue
+			}
+			if err2 := readConfigFile(v, fallback); err2 == nil {
+				lastErr = nil
+				break
+			} else {
+				lastErr = err2
+			}
+		}
+		if lastErr != nil {
+			return fmt.Errorf("read config: %w", lastErr)
 		}
 	}
 	v.AutomaticEnv()
 	v.SetEnvPrefix("VIDEO")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	return nil
+}
+
+func readConfigFile(v *viper.Viper, path string) error {
+	v.SetConfigFile(path)
+	ext := strings.TrimPrefix(strings.ToLower(path[strings.LastIndex(path, "."):]), ".")
+	if ext == "yml" || ext == "yaml" {
+		v.SetConfigType(ext)
+	} else {
+		v.SetConfigType("yaml")
+	}
+	return v.ReadInConfig()
 }
 
 func configFilePath(keys ...string) string {

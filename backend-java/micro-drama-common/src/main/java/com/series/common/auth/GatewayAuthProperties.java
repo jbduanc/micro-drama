@@ -4,7 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * 网关鉴权：生产由 Kong JWT 插件校验签名；应用侧保留 Redis 会话/黑名单校验。
+ * 网关鉴权：生产由 Kong 校验 JWT；content 等业务服务在 kong 模式下仍可做 Redis 会话/黑名单校验。
+ * admin / user 登录服务不读取本配置。
  */
 @Component
 @ConfigurationProperties(prefix = "auth.gateway")
