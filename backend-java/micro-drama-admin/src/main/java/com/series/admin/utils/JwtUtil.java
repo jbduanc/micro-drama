@@ -28,8 +28,8 @@ public class JwtUtil {
         return jwtTokenService.isValidate(token, AUDIENCE);
     }
 
-    public boolean isSessionValid(String token) {
-        return jwtTokenService.isSessionValid(token, AUDIENCE);
+    public boolean isSessionValid(String token, String subject) {
+        return jwtTokenService.isSessionValid(token, subject, AUDIENCE);
     }
 
     public void storeLoginToken(String email, String token) {

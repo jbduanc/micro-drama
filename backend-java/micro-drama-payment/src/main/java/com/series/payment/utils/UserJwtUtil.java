@@ -17,8 +17,8 @@ public class UserJwtUtil {
         return jwtTokenService.isValidate(token, AUDIENCE);
     }
 
-    public boolean isSessionValid(String token) {
-        return jwtTokenService.isSessionValid(token, AUDIENCE);
+    public boolean isSessionValid(String token, String subject) {
+        return jwtTokenService.isSessionValid(token, subject, AUDIENCE);
     }
 
     public String getUserId(String token) {

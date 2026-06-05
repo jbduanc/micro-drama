@@ -26,7 +26,7 @@ public class JwtUtil {
         return jwtTokenService.validateAny(token, CONTENT_AUDIENCES);
     }
 
-    public Optional<ValidatedToken> validateSession(String token) {
-        return jwtTokenService.sessionValidAny(token, CONTENT_AUDIENCES);
+    public Optional<ValidatedToken> validateSession(String token, String subject, AuthAudience audience) {
+        return jwtTokenService.sessionValidAny(token, subject, audience, CONTENT_AUDIENCES);
     }
 }

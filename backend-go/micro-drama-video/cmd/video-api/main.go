@@ -10,13 +10,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
 	"micro-drama-video/internal/auth"
@@ -88,7 +91,30 @@ func main() {
 	r := gin.New()
 	// Recovery：捕获 handler 内 panic，避免整个进程崩溃。
 	r.Use(gin.Recovery())
-	r.Use(auth.GinMiddleware(cfg.JWT.Secret, []string{"admin", "user"}, "/healthz", "/v1/video/oss-event"))
+
+	authCfg := auth.MiddlewareConfig{
+		Secret:           cfg.JWT.Secret,
+		AllowedAudiences: []string{"admin", "user"},
+		GatewayMode:      cfg.Auth.GatewayMode,
+		SkipPaths:        []string{"/healthz", "/v1/video/oss-event"},
+	}
+	if strings.EqualFold(cfg.Auth.GatewayMode, "kong") {
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+			Password: cfg.Redis.Password,
+			DB:       cfg.Redis.Database,
+		})
+		if err := redisClient.Ping(context.Background()).Err(); err != nil {
+			log.Fatal("startup failed at redis ping (required for auth_gateway_mode=kong)", zap.Error(err))
+		}
+		defer redisClient.Close()
+		authCfg.SessionStore = auth.NewRedisSessionStore(redisClient)
+		log.Info("redis session store ready for kong gateway mode",
+			zap.String("redisHost", cfg.Redis.Host),
+			zap.Int("redisPort", cfg.Redis.Port),
+		)
+	}
+	r.Use(auth.GinMiddleware(authCfg))
 	handler.Register(r, log, svc)
 
 	// ---------- 4. 启动 HTTP Server ----------

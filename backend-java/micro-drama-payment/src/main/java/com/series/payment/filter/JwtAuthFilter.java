@@ -59,7 +59,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             if (gatewayAuthProperties.isKongMode()) {
                 String token = GatewayAuthSupport.bearerToken(request);
-                if (token != null && !userJwtUtil.isSessionValid(token)) {
+                JwtPrincipal kongPrincipal = fromKong.get();
+                if (token == null || !userJwtUtil.isSessionValid(token, kongPrincipal.getSubject())) {
                     return Optional.empty();
                 }
             }

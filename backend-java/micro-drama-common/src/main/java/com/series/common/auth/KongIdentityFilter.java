@@ -1,5 +1,6 @@
 package com.series.common.auth;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -14,10 +15,17 @@ import java.util.Collections;
 import java.util.Optional;
 
 /**
- * 登录服务：仅根据 Kong 注入头设置身份，不做 JWT 校验。
+ * 登录服务：Kong 模式下信任网关注入头，并校验 Redis 会话/黑名单（注销、单点登录）。
+ * 本地直连（无 X-Kong-Request-Id）时不设置身份，由业务自行处理公开路径。
  */
 @Component
 public class KongIdentityFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private GatewayAuthProperties gatewayAuthProperties;
+
+    @Autowired
+    private JwtTokenService jwtTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -25,6 +33,14 @@ public class KongIdentityFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             Optional<JwtPrincipal> principal = GatewayAuthSupport.principalFromKong(request);
+            if (principal.isPresent() && gatewayAuthProperties.isKongMode()) {
+                String token = GatewayAuthSupport.bearerToken(request);
+                JwtPrincipal p = principal.get();
+                if (token == null || !jwtTokenService.isSessionValid(token, p.getSubject(), p.getAudience())) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            }
             principal.ifPresent(p -> SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken(p, null, Collections.emptyList())));
             filterChain.doFilter(request, response);

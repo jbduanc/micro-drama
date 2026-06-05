@@ -201,6 +201,15 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 		os.Getenv("JWT_SECRET"),
 	)
 
+	c.Auth.GatewayMode = firstNonEmpty(
+		v.GetString("auth_gateway_mode"),
+		os.Getenv("AUTH_GATEWAY_MODE"),
+	)
+	c.Redis.Host = firstNonEmpty(v.GetString("redis_host"), os.Getenv("REDIS_HOST"), "localhost")
+	c.Redis.Port = v.GetInt("redis_port")
+	c.Redis.Password = firstNonEmpty(v.GetString("redis_password"), os.Getenv("REDIS_PASSWORD"))
+	c.Redis.Database = v.GetInt("redis_database")
+
 	if c.Playback.URLExpireSeconds <= 0 {
 		c.Playback.URLExpireSeconds = 3600
 	}
@@ -236,6 +245,9 @@ func unmarshal(v *viper.Viper) (*Config, error) {
 	}
 	if c.Kafka.ConsumerGroup == "" {
 		c.Kafka.ConsumerGroup = "micro-drama-video"
+	}
+	if c.Redis.Port == 0 {
+		c.Redis.Port = 6379
 	}
 
 	if c.DB.DSN() == "" {
@@ -313,7 +325,18 @@ type Config struct {
 	}
 
 	JWT struct {
-		Secret string // 与 Java 服务 jwt.secret 一致，校验 admin/user Bearer
+		Secret string // 与 Java 服务 jwt.secret 一致，本地直连时校验 Bearer
+	}
+
+	Auth struct {
+		GatewayMode string // off | kong；kong 时信任 Kong 头并查 Redis 会话
+	}
+
+	Redis struct {
+		Host     string
+		Port     int
+		Password string
+		Database int
 	}
 
 	DB DBConfig

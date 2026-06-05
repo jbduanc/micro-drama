@@ -4,7 +4,6 @@ import com.series.common.auth.GatewayAuthProperties;
 import com.series.common.auth.GatewayAuthSupport;
 import com.series.common.auth.GatewayPathSupport;
 import com.series.common.auth.JwtPrincipal;
-import com.series.common.auth.ValidatedToken;
 import com.series.content.auth.ContentAuthPolicy;
 import com.series.content.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,16 +69,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
             if (gatewayAuthProperties.isKongMode()) {
                 String token = GatewayAuthSupport.bearerToken(request);
-                if (token != null) {
-                    Optional<ValidatedToken> session = jwtUtil.validateSession(token);
-                    if (!session.isPresent()) {
-                        return Optional.empty();
-                    }
-                    JwtPrincipal p = fromKong.get();
-                    if (!session.get().getSubject().equals(p.getSubject())
-                            || session.get().getAudience() != p.getAudience()) {
-                        return Optional.empty();
-                    }
+                JwtPrincipal kongPrincipal = fromKong.get();
+                if (token == null || !jwtUtil.validateSession(
+                        token, kongPrincipal.getSubject(), kongPrincipal.getAudience()).isPresent()) {
+                    return Optional.empty();
                 }
             }
             return fromKong;

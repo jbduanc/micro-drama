@@ -10,7 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * 用户服务仅负责 Telegram/开发登录与注销；登录态校验由 Kong 完成，本服务不做 JWT 鉴权。
+ * 用户服务仅负责 Telegram/开发登录与注销；Kong 校验 JWT 签名，本服务校验 Redis 会话/黑名单。
  */
 @Configuration
 @EnableWebSecurity
