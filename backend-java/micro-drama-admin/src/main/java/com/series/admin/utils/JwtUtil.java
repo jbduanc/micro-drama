@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * 管理端 JWT，受众 {@link AuthAudience#ADMIN}；签名校验可由 Kong 网关承担（{@code auth.gateway.mode=kong}）。
+ * 管理端 JWT，受众 {@link AuthAudience#ADMIN}；签名校验由 Traefik ForwardAuth 承担（{@code auth.gateway.mode=gateway}）。
  */
 @Component
 public class JwtUtil {

@@ -6,7 +6,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Optional;
 
 /**
- * 在 Controller / Service 中获取当前登录人（来自 Kong 头或 JWT 过滤器写入的 {@link JwtPrincipal}）。
+ * 在 Controller / Service 中获取当前登录人（来自网关头或 JWT 过滤器写入的 {@link JwtPrincipal}）。
  */
 public final class GatewayAuthContext {
 

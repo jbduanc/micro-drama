@@ -6,6 +6,11 @@ import com.series.admin.entity.sys.SysUser;
 import com.series.admin.service.sys.ISysUserService;
 import com.series.admin.utils.JwtUtil;
 import com.series.admin.utils.SecurityUserUtils;
+import com.series.common.auth.AuthAudience;
+import com.series.common.auth.AuthCookieSupport;
+import com.series.common.auth.AuthTokenIssueService;
+import com.series.common.auth.AuthTokenPair;
+import com.series.common.auth.GatewayAuthSupport;
 import com.series.common.entity.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +29,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -55,6 +62,12 @@ public class LoginController {
     private RestTemplate restTemplate;
     @Autowired
     private ClientRegistrationRepository clientRegistrationRepository;
+
+    @Autowired
+    private AuthTokenIssueService authTokenIssueService;
+
+    @Autowired
+    private AuthCookieSupport authCookieSupport;
 
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String googleRedirectUri;
@@ -86,7 +99,9 @@ public class LoginController {
      * 修复1：必须用 @GetMapping ！！！Google回调是GET请求
      */
     @PostMapping("/login/google")
-    public Result<String> googleLogin(@RequestBody Map<String, String> payload, HttpServletRequest request) {
+    public Result<AuthTokenPair> googleLogin(@RequestBody Map<String, String> payload,
+                                             HttpServletRequest request,
+                                             HttpServletResponse response) {
         String code = payload.get("code");
         if (code == null || code.isEmpty()) {
             return Result.error("授权码不能为空");
@@ -163,26 +178,56 @@ public class LoginController {
             sysUserService.updateById(user);
         }
 
-        // 5. 生成 JWT（aud=admin）并存入 Redis；受保护路由由 Kong 统一校验
-        String token = jwtUtil.generateToken(email);
-        jwtUtil.storeLoginToken(email, token);
+        AuthTokenPair tokens = authTokenIssueService.issue(email, AuthAudience.ADMIN);
+        authCookieSupport.writeTokenCookies(response, tokens);
+        return Result.ok(tokens);
+    }
 
-        return Result.ok(token);
+    @PostMapping("/refresh")
+    public Result<AuthTokenPair> refresh(@RequestBody(required = false) Map<String, String> body,
+                                         HttpServletRequest request,
+                                         HttpServletResponse response) {
+        String refresh = resolveRefreshToken(request, body);
+        if (refresh == null) {
+            return Result.error("缺少 refresh token");
+        }
+        Optional<AuthTokenPair> pair = authTokenIssueService.refresh(refresh, AuthAudience.ADMIN);
+        if (!pair.isPresent()) {
+            return Result.error("refresh token 无效或已过期");
+        }
+        AuthTokenPair tokens = pair.get();
+        authCookieSupport.writeTokenCookies(response, tokens);
+        return Result.ok(tokens);
     }
 
     // 注销：加入黑名单 + 删除Redis登录态
     @PostMapping("/logout")
-    public Result logout(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        // 解析token获取用户邮箱
-        String email = jwtUtil.getEmail(token);
+    public Result logout(@RequestHeader(value = "Authorization", required = false) String authHeader,
+                         HttpServletRequest request,
+                         HttpServletResponse response) {
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.replace("Bearer ", "").trim();
+        }
+        String email = token != null ? jwtUtil.getEmail(token) : null;
 
         if (email != null) {
-            jwtUtil.revokeLoginToken(email);
+            authTokenIssueService.revokeAll(email, AuthAudience.ADMIN, token);
         }
-        jwtUtil.blacklistToken(token);
+        authCookieSupport.clearTokenCookies(response);
 
         return Result.ok("注销成功");
+    }
+
+    private String resolveRefreshToken(HttpServletRequest request, Map<String, String> body) {
+        String refresh = authCookieSupport.readCookie(request, com.series.common.auth.AuthCookieNames.REFRESH);
+        if (refresh != null) {
+            return refresh;
+        }
+        if (body != null && body.get("refreshToken") != null) {
+            return body.get("refreshToken");
+        }
+        return request.getHeader(GatewayAuthSupport.REFRESH_HEADER);
     }
 
     /**

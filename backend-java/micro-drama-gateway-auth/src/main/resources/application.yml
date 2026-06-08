@@ -1,0 +1,29 @@
+server:
+  port: ${SERVER_PORT:6010}
+
+spring:
+  application:
+    name: micro-drama-gateway-auth
+  config:
+    additional-location: optional:file:/config/application.yml,optional:file:./config/application.yml
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+
+jwt:
+  secret: ${JWT_SECRET:dev-jwt-secret-change-me}
+  access-expire: ${JWT_ACCESS_EXPIRE:7200000}
+  refresh-expire: ${JWT_REFRESH_EXPIRE:2592000000}
+
+auth:
+  cookie:
+    domain: ${AUTH_COOKIE_DOMAIN:}
+    secure: ${AUTH_COOKIE_SECURE:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

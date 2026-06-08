@@ -3,8 +3,8 @@ http_addr: ":6005"
 
 jwt_secret: "${JWT_SECRET}"
 
-# Kong 模式：信任 X-Auth-* 头，并校验与 Java 相同的 Redis 登录态/黑名单
-auth_gateway_mode: kong
+# gateway 模式：信任 X-Auth-* 头（Traefik ForwardAuth），并校验与 Java 相同的 Redis 登录态/黑名单
+auth_gateway_mode: gateway
 redis_host: redis
 redis_port: 6379
 redis_password: "${REDIS_PASSWORD}"

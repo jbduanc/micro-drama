@@ -18,10 +18,14 @@ spring:
 jwt:
   secret: "${JWT_SECRET}"
   access-expire: 900000
+  refresh-expire: 2592000000
 
 auth:
   gateway:
-    mode: kong
+    mode: gateway
+  cookie:
+    domain: ${AUTH_COOKIE_DOMAIN:.dramadjbo.com}
+    secure: true
 
 telegram:
   bot-token: "${TELEGRAM_BOT_TOKEN}"

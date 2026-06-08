@@ -11,10 +11,11 @@ export type AuthUser = {
 
 interface AuthState {
   user: AuthUser | null
-  token: string | null
+  accessToken: string | null
+  refreshToken: string | null
   isAuthenticated: boolean
-  setSession: (payload: { user: AuthUser; token: string }) => void
-  setToken: (token: string | null) => void
+  setSession: (payload: { user: AuthUser; accessToken: string; refreshToken: string }) => void
+  setTokens: (payload: { accessToken: string; refreshToken?: string | null }) => void
   clearSession: () => void
 }
 
@@ -22,19 +23,33 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
-      setSession: ({ user, token }) => set({ user, token, isAuthenticated: true }),
-      setToken: (token) => set({ token, isAuthenticated: Boolean(token) }),
-      clearSession: () => set({ user: null, token: null, isAuthenticated: false }),
+      setSession: ({ user, accessToken, refreshToken }) =>
+        set({ user, accessToken, refreshToken, isAuthenticated: true }),
+      setTokens: ({ accessToken, refreshToken }) =>
+        set((state) => ({
+          accessToken,
+          refreshToken: refreshToken ?? state.refreshToken,
+          isAuthenticated: Boolean(accessToken),
+        })),
+      clearSession: () =>
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
     }),
     {
       name: "auth-storage",
       partialize: (state) => ({
-        token: state.token,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
     },
   ),
-);
+)
+
+/** @deprecated 兼容旧代码 */
+export function getLegacyToken(state: AuthState): string | null {
+  return state.accessToken
+}

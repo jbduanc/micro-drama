@@ -1,5 +1,4 @@
 import { API_BASE, apiFetch } from "@/lib/api/client";
-import { authHeaders } from "@/lib/auth/token";
 import type {
   ApiResult,
   MicroDrama,
@@ -20,7 +19,6 @@ export async function fetchDramaPageList(params: {
     "/microDramas/pageList",
     {
       method: "POST",
-      headers: authHeaders(),
       body: {
         page: params.page ?? 1,
         size: params.size ?? 20,
@@ -41,7 +39,6 @@ export async function fetchDramaDetail(
     API_BASE.content,
     `/microDramas/detail/${dramaId}`,
     {
-      headers: authHeaders(),
       cache: "no-store",
     },
   );

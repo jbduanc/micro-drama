@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// MiddlewareConfig Gin 鉴权：Kong 模式信任网关头并查 Redis；本地直连时校验 Bearer JWT。
+// MiddlewareConfig Gin 鉴权：gateway 模式信任网关头并查 Redis；本地直连时校验 Bearer JWT。
 type MiddlewareConfig struct {
 	Secret           string
 	AllowedAudiences []string
@@ -23,7 +23,7 @@ func GinMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 	for _, a := range cfg.AllowedAudiences {
 		allowed[a] = struct{}{}
 	}
-	kongMode := strings.EqualFold(strings.TrimSpace(cfg.GatewayMode), "kong")
+	gatewayMode := strings.EqualFold(strings.TrimSpace(cfg.GatewayMode), "gateway")
 
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
@@ -34,12 +34,12 @@ func GinMiddleware(cfg MiddlewareConfig) gin.HandlerFunc {
 			}
 		}
 
-		if sub, aud, ok := PrincipalFromKong(c); ok {
+		if sub, aud, ok := PrincipalFromGateway(c); ok {
 			if _, ok := allowed[aud]; !ok {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "audience not allowed"})
 				return
 			}
-			if kongMode {
+			if gatewayMode {
 				token := BearerToken(c)
 				if token == "" || cfg.SessionStore == nil {
 					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or revoked token"})

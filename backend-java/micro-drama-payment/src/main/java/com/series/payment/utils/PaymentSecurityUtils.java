@@ -6,7 +6,7 @@ import com.series.common.auth.JwtPrincipal;
 import java.util.Optional;
 
 /**
- * 支付服务获取当前 C 端用户（Kong {@code X-Auth-Subject} 或本地 JWT 校验后写入上下文）。
+ * 支付服务获取当前 C 端用户（网关注入 {@code X-Auth-Subject} 或本地 JWT 校验后写入上下文）。
  */
 public final class PaymentSecurityUtils {
 

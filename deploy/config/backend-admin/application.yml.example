@@ -32,7 +32,10 @@ jwt:
 
 auth:
   gateway:
-    mode: kong
+    mode: gateway
+  cookie:
+    domain: ${AUTH_COOKIE_DOMAIN:.dramadjbo.com}
+    secure: true
 
 cors:
   allowed-origins: https://admin.dramadjbo.com

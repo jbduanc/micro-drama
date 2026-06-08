@@ -4,22 +4,24 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 /**
- * 从 Kong 注入的请求头解析登录身份（须同时存在 {@code X-Kong-Request-Id}，防止客户端伪造）。
+ * 从网关注入的请求头解析登录身份（须同时存在 {@code X-Gateway-Request-Id}）。
  */
 public final class GatewayAuthSupport {
+
+    public static final String REFRESH_HEADER = "X-Refresh-Token";
 
     private GatewayAuthSupport() {
     }
 
-    public static Optional<JwtPrincipal> principalFromKong(HttpServletRequest request) {
-        if (!GatewayPathSupport.isKongProxied(request)) {
+    public static Optional<JwtPrincipal> principalFromGateway(HttpServletRequest request) {
+        if (!GatewayPathSupport.isGatewayProxied(request)) {
             return Optional.empty();
         }
-        String subject = trimHeader(request, KongAuthHeaders.SUBJECT);
+        String subject = trimHeader(request, GatewayAuthHeaders.SUBJECT);
         if (subject == null) {
             return Optional.empty();
         }
-        AuthAudience audience = AuthAudience.fromClaim(trimHeader(request, KongAuthHeaders.AUDIENCE));
+        AuthAudience audience = AuthAudience.fromClaim(trimHeader(request, GatewayAuthHeaders.AUDIENCE));
         if (audience == null) {
             audience = AuthAudience.USER;
         }

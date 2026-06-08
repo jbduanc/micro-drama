@@ -1,4 +1,4 @@
-/** 生产环境 API 网关域名（Kong / 统一入口） */
+/** 生产环境 API 网关域名（Traefik 统一入口） */
 export const PROD_API_ORIGIN = "https://api.dramadjbo.com";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);

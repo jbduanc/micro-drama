@@ -3,7 +3,7 @@ package com.series.common.auth;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * 统一处理 Kong 路由前缀（/admin-api、/user-api 等）与公开登录路径。
+ * 统一处理 API 网关路由前缀（/admin-api、/user-api 等）与公开登录路径。
  */
 public final class GatewayPathSupport {
 
@@ -36,8 +36,8 @@ public final class GatewayPathSupport {
         return path;
     }
 
-    public static boolean isKongProxied(HttpServletRequest request) {
-        String requestId = request.getHeader("X-Kong-Request-Id");
+    public static boolean isGatewayProxied(HttpServletRequest request) {
+        String requestId = request.getHeader(GatewayAuthHeaders.GATEWAY_REQUEST_ID);
         return requestId != null && !requestId.isEmpty();
     }
 }

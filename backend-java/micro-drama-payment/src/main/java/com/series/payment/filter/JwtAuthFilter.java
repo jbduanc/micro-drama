@@ -52,19 +52,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private Optional<JwtPrincipal> resolvePrincipal(HttpServletRequest request) {
-        if (GatewayPathSupport.isKongProxied(request)) {
-            Optional<JwtPrincipal> fromKong = GatewayAuthSupport.principalFromKong(request);
-            if (!fromKong.isPresent()) {
+        if (GatewayPathSupport.isGatewayProxied(request)) {
+            Optional<JwtPrincipal> fromGateway = GatewayAuthSupport.principalFromGateway(request);
+            if (!fromGateway.isPresent()) {
                 return Optional.empty();
             }
-            if (gatewayAuthProperties.isKongMode()) {
+            if (gatewayAuthProperties.isGatewayMode()) {
                 String token = GatewayAuthSupport.bearerToken(request);
-                JwtPrincipal kongPrincipal = fromKong.get();
-                if (token == null || !userJwtUtil.isSessionValid(token, kongPrincipal.getSubject())) {
+                JwtPrincipal gatewayPrincipal = fromGateway.get();
+                if (token == null || !userJwtUtil.isSessionValid(token, gatewayPrincipal.getSubject())) {
                     return Optional.empty();
                 }
             }
-            return fromKong;
+            return fromGateway;
         }
         String token = GatewayAuthSupport.bearerToken(request);
         if (token == null || !userJwtUtil.isValidate(token)) {

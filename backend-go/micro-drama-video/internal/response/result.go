@@ -1,7 +1,7 @@
 // Package response 提供统一 HTTP JSON 响应结构。
 //
 // 与 Java 微服务 com.series.common.entity.Result 字段对齐（code、msg、data、serverTime），
-// 前端和 Kong 网关可共用同一套解析逻辑。
+// 前端和 API 网关可共用同一套解析逻辑。
 package response
 
 import "time"

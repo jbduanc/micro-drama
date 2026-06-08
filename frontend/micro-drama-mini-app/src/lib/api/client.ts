@@ -1,4 +1,5 @@
 import { resolveApiBase } from "@/config/apiBase";
+import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 
 export const API_BASE = {
   user: resolveApiBase(process.env.NEXT_PUBLIC_USER_API_BASE, "/user-api"),
@@ -35,18 +36,7 @@ export async function apiFetch<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, headers = {}, cache, next } = options;
-
-  const res = await fetch(`${base}${path}`, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: body != null ? JSON.stringify(body) : undefined,
-    cache,
-    next,
-  });
+  const res = await authenticatedFetch(base, path, options);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");

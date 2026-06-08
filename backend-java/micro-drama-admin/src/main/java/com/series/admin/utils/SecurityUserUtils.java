@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 
 /**
- * 获取当前管理员信息。身份来自 Kong 注入的 {@code X-Auth-Subject}（邮箱），不经本服务 JWT 校验。
+ * 获取当前管理员信息。身份来自网关注入的 {@code X-Auth-Subject}（邮箱）。
  */
 @Component
 public class SecurityUserUtils {

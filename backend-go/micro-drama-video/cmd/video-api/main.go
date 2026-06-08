@@ -98,18 +98,18 @@ func main() {
 		GatewayMode:      cfg.Auth.GatewayMode,
 		SkipPaths:        []string{"/healthz", "/v1/video/oss-event"},
 	}
-	if strings.EqualFold(cfg.Auth.GatewayMode, "kong") {
+	if strings.EqualFold(cfg.Auth.GatewayMode, "gateway") {
 		redisClient := redis.NewClient(&redis.Options{
 			Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
 			Password: cfg.Redis.Password,
 			DB:       cfg.Redis.Database,
 		})
 		if err := redisClient.Ping(context.Background()).Err(); err != nil {
-			log.Fatal("startup failed at redis ping (required for auth_gateway_mode=kong)", zap.Error(err))
+			log.Fatal("startup failed at redis ping (required for auth_gateway_mode=gateway)", zap.Error(err))
 		}
 		defer redisClient.Close()
 		authCfg.SessionStore = auth.NewRedisSessionStore(redisClient)
-		log.Info("redis session store ready for kong gateway mode",
+		log.Info("redis session store ready for gateway mode",
 			zap.String("redisHost", cfg.Redis.Host),
 			zap.Int("redisPort", cfg.Redis.Port),
 		)

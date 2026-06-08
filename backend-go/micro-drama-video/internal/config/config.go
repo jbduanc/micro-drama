@@ -329,7 +329,7 @@ type Config struct {
 	}
 
 	Auth struct {
-		GatewayMode string // off | kong；kong 时信任 Kong 头并查 Redis 会话
+		GatewayMode string // off | gateway；gateway 时信任 ForwardAuth 头并查 Redis 会话
 	}
 
 	Redis struct {

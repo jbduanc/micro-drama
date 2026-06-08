@@ -21,11 +21,14 @@ export default function OAuthCallbackPage() {
 
       try {
         const redirectUri = new URL("/oauth/callback", window.location.origin).toString()
-        const token = await authService.loginWithGoogleCode(code, redirectUri)
-        // set token early so subsequent calls include Authorization header
-        useAuthStore.getState().setToken(token)
+        const tokens = await authService.loginWithGoogleCode(code, redirectUri)
+        useAuthStore.getState().setTokens(tokens)
         const user = await authService.getUserInfo()
-        setSession({ token, user })
+        setSession({
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          user,
+        })
         toast.success("登录成功")
         navigate("/users", { replace: true })
       } catch (e) {

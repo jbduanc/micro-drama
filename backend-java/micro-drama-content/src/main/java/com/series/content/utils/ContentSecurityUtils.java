@@ -7,7 +7,7 @@ import com.series.common.auth.JwtPrincipal;
 import java.util.Optional;
 
 /**
- * 内容服务获取当前登录人（Kong 注入或 JWT 过滤器写入 {@link JwtPrincipal}）。
+ * 内容服务获取当前登录人（网关注入或 JWT 过滤器写入 {@link JwtPrincipal}）。
  */
 public final class ContentSecurityUtils {
 

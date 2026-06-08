@@ -1,7 +1,7 @@
 package com.series.common.auth;
 
 /**
- * JWT 受众，与 Kong 路由/插件按服务划分鉴权一致。
+ * JWT 受众，与 API 网关按路径划分 aud 一致。
  */
 public enum AuthAudience {
     ADMIN("admin"),

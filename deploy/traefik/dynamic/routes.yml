@@ -1,0 +1,173 @@
+# Traefik 动态路由（API 网关）
+# ForwardAuth：gateway-auth:6010（JWT 验签 + aud + 静默 refresh）
+
+http:
+  middlewares:
+    cors-api:
+      headers:
+        accessControlAllowOriginList:
+          - https://admin.dramadjbo.com
+          - https://www.dramadjbo.com
+          - https://dramadjbo.com
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+          - Accept
+          - Origin
+          - X-Requested-With
+          - X-Refresh-Token
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+
+    forward-auth:
+      forwardAuth:
+        address: "http://gateway-auth:6010/auth/verify"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Auth-Subject
+          - X-Auth-Audience
+          - Authorization
+          - X-Gateway-Request-Id
+          - X-Access-Token-Refreshed
+        authRequestHeaders:
+          - Authorization
+          - Cookie
+          - X-Refresh-Token
+        addAuthCookiesToResponse: true
+
+    strip-video-prefix:
+      stripPrefix:
+        prefixes:
+          - /video-api
+
+  routers:
+    # --- admin-api ---
+    admin-oauth-public:
+      rule: "PathPrefix(`/admin-api/oauth2/authorize-url`) || PathPrefix(`/admin-api/oauth2/login/google`) || PathPrefix(`/admin-api/oauth2/refresh`)"
+      entryPoints: [web]
+      service: backend-admin
+      middlewares: [cors-api]
+      priority: 100
+
+    admin-actuator:
+      rule: "PathPrefix(`/admin-api/actuator`)"
+      entryPoints: [web]
+      service: backend-admin
+      priority: 90
+
+    admin-api-protected:
+      rule: "PathPrefix(`/admin-api`)"
+      entryPoints: [web]
+      service: backend-admin
+      middlewares: [cors-api, forward-auth]
+      priority: 10
+
+    # --- user-api ---
+    user-auth-public:
+      rule: "PathPrefix(`/user-api/auth/telegram`) || PathPrefix(`/user-api/auth/dev/init`) || PathPrefix(`/user-api/auth/web3/challenge`) || PathPrefix(`/user-api/auth/refresh`)"
+      entryPoints: [web]
+      service: backend-user
+      middlewares: [cors-api]
+      priority: 100
+
+    user-actuator:
+      rule: "PathPrefix(`/user-api/actuator`)"
+      entryPoints: [web]
+      service: backend-user
+      priority: 90
+
+    user-api-protected:
+      rule: "PathPrefix(`/user-api`)"
+      entryPoints: [web]
+      service: backend-user
+      middlewares: [cors-api, forward-auth]
+      priority: 10
+
+    # --- content-api ---
+    content-actuator:
+      rule: "PathPrefix(`/content-api/actuator`)"
+      entryPoints: [web]
+      service: backend-content
+      priority: 90
+
+    content-api-protected:
+      rule: "PathPrefix(`/content-api`)"
+      entryPoints: [web]
+      service: backend-content
+      middlewares: [cors-api, forward-auth]
+      priority: 10
+
+    # --- payment-api ---
+    payment-health-public:
+      rule: "Path(`/payment-api/healthz`)"
+      entryPoints: [web]
+      service: backend-payment
+      middlewares: [cors-api]
+      priority: 100
+
+    payment-actuator:
+      rule: "PathPrefix(`/payment-api/actuator`)"
+      entryPoints: [web]
+      service: backend-payment
+      priority: 90
+
+    payment-api-protected:
+      rule: "PathPrefix(`/payment-api`)"
+      entryPoints: [web]
+      service: backend-payment
+      middlewares: [cors-api, forward-auth]
+      priority: 10
+
+    # --- video-api（strip /video-api 前缀）---
+    video-public:
+      rule: "Path(`/video-api/healthz`) || PathPrefix(`/video-api/v1/video/oss-event`)"
+      entryPoints: [web]
+      service: backend-video
+      middlewares: [strip-video-prefix, cors-api]
+      priority: 100
+
+    video-api-protected:
+      rule: "PathPrefix(`/video-api`)"
+      entryPoints: [web]
+      service: backend-video
+      middlewares: [strip-video-prefix, cors-api, forward-auth]
+      priority: 10
+
+  services:
+    backend-admin:
+      loadBalancer:
+        servers:
+          - url: "http://backend-admin:6001"
+
+    backend-user:
+      loadBalancer:
+        servers:
+          - url: "http://backend-user:6003"
+
+    backend-content:
+      loadBalancer:
+        servers:
+          - url: "http://backend-content:6002"
+
+    backend-payment:
+      loadBalancer:
+        servers:
+          - url: "http://backend-payment:6004"
+
+    backend-video:
+      loadBalancer:
+        servers:
+          - url: "http://backend-video:6005"
+
+    gateway-auth:
+      loadBalancer:
+        servers:
+          - url: "http://gateway-auth:6010"

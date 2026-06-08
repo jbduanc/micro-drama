@@ -1,0 +1,29 @@
+# 生产示例：~/traefik/docker-compose-traefik.yml
+# 与业务 compose 共用 app-network
+version: '3.8'
+
+networks:
+  default:
+    name: app-network
+    external: true
+
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    ports:
+      - "3000:8000"   # 对外 HTTP（前面 Nginx 终止 HTTPS）
+      - "3080:8080"   # Dashboard（仅内网）
+    volumes:
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+    restart: unless-stopped
+
+  gateway-auth:
+    image: 127.0.0.1:8082/backend-micro-drama-gateway-auth:latest
+    container_name: gateway-auth
+    volumes:
+      - ./config/gateway-auth:/config:ro
+    ports:
+      - "6010:6010"
+    restart: unless-stopped

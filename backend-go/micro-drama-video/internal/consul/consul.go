@@ -2,7 +2,7 @@
 //
 // 两大能力（与 Java spring-cloud-starter-consul 对齐）：
 //  1. 配置中心：启动时从 KV 读取 YAML，合并到 Viper（MergeRemoteConfig）
-//  2. 服务发现：将本 HTTP 服务注册到 Consul Agent（RegisterService），供 Kong/Java 发现
+//  2. 服务发现：将本 HTTP 服务注册到 Consul Agent（RegisterService）
 //
 // KV 路径约定：{prefix}/{configName}/{dataKey}
 // 默认：config/micro-drama-video/data
@@ -172,7 +172,7 @@ func RegisterService(v *viper.Viper, log *zap.Logger, listenAddr, healthPath str
 
 	reg := &api.AgentServiceRegistration{
 		ID:      serviceID,
-		Name:    serviceName, // Kong 服务发现通常按 Name 聚合多实例
+		Name:    serviceName,
 		Address: advertiseIP,
 		Port:    portNum,
 		Tags:    []string{"go", "video", "http"},

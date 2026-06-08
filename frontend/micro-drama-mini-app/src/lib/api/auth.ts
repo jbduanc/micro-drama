@@ -1,15 +1,17 @@
 import { API_BASE } from "@/lib/api/client";
-import { setAccessToken } from "@/lib/auth/token";
+import { setTokens } from "@/lib/auth/token";
 import type { ApiResult, UserProfile } from "@/types";
 
 type LoginTokenPayload = {
   accessToken: string;
+  refreshToken?: string;
   user: UserProfile & { avatarUrl?: string; authProvider?: string };
 };
 
 async function postJson<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE.user}${path}`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: body != null ? JSON.stringify(body) : undefined,
   });
@@ -22,7 +24,7 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
 
 export async function loginWithTelegram(initData: string): Promise<UserProfile> {
   const data = await postJson<LoginTokenPayload>("/auth/telegram", { initData });
-  setAccessToken(data.accessToken);
+  setTokens(data.accessToken, data.refreshToken);
   return mapUser(data.user);
 }
 
@@ -31,7 +33,7 @@ export async function loginWithDevUser(payload?: {
   nickname?: string;
 }): Promise<UserProfile> {
   const data = await postJson<LoginTokenPayload>("/auth/dev/init", payload);
-  setAccessToken(data.accessToken);
+  setTokens(data.accessToken, data.refreshToken);
   return mapUser(data.user);
 }
 

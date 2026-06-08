@@ -1,5 +1,7 @@
 package com.series.user.service;
 
+import com.series.common.auth.AuthTokenIssueService;
+import com.series.common.auth.AuthTokenPair;
 import com.series.user.dto.LoginTokenDTO;
 import com.series.user.dto.UserProfileDTO;
 import com.series.user.entity.AppUser;
@@ -11,13 +13,15 @@ import org.springframework.stereotype.Service;
 public class AuthSessionService {
 
     @Autowired
+    private AuthTokenIssueService authTokenIssueService;
+
+    @Autowired
     private UserJwtUtil userJwtUtil;
 
     public LoginTokenDTO issueToken(AppUser user) {
         String userId = user.getId().toString();
-        String token = userJwtUtil.generateToken(userId);
-        userJwtUtil.storeLoginToken(userId, token);
-        return new LoginTokenDTO(token, toProfile(user));
+        AuthTokenPair pair = authTokenIssueService.issue(userId, com.series.common.auth.AuthAudience.USER);
+        return new LoginTokenDTO(pair.getAccessToken(), pair.getRefreshToken(), toProfile(user));
     }
 
     public static UserProfileDTO toProfile(AppUser user) {

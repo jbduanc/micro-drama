@@ -38,7 +38,7 @@ public class JwtTokenService {
                 .setSubject(subject)
                 .claim(CLAIM_AUD, audience.getValue())
                 .setExpiration(new Date(System.currentTimeMillis() + accessExpire))
-                // jjwt 0.9.1 String overload base64-decodes; use UTF-8 bytes to match Kong / Go
+                // jjwt 0.9.1 String overload base64-decodes; use UTF-8 bytes to match Go
                 .signWith(SignatureAlgorithm.HS256, secret.getBytes(StandardCharsets.UTF_8))
                 .compact();
     }
@@ -100,7 +100,7 @@ public class JwtTokenService {
     }
 
     /**
-     * Kong 模式：信任网关已验签，仅用网关注入的身份做 Redis 会话/黑名单校验。
+     * gateway 模式：信任 ForwardAuth 已验签，仅用网关注入身份做 Redis 会话/黑名单校验。
      */
     public Optional<ValidatedToken> sessionValidAny(String token,
                                                   String subject,
@@ -130,7 +130,7 @@ public class JwtTokenService {
     }
 
     /**
-     * Kong 已在网关校验 JWT 签名时，应用仅校验 Redis 会话与黑名单。
+     * ForwardAuth 已在网关校验 JWT 签名时，应用仅校验 Redis 会话与黑名单。
      */
     public boolean isSessionValid(String token, String subject, AuthAudience expectedAudience) {
         return sessionValidAny(token, subject, expectedAudience, expectedAudience).isPresent();

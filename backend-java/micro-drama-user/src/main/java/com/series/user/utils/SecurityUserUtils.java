@@ -10,7 +10,7 @@ import javax.annotation.PostConstruct;
 import java.util.UUID;
 
 /**
- * 获取当前小程序用户。身份来自 Kong 注入的 {@code X-Auth-Subject}（用户 UUID），不经本服务 JWT 校验。
+ * 获取当前小程序用户。身份来自网关注入的 {@code X-Auth-Subject}（用户 UUID）。
  */
 @Component
 public class SecurityUserUtils {

@@ -15,11 +15,11 @@ import java.util.Collections;
 import java.util.Optional;
 
 /**
- * 登录服务：Kong 模式下信任网关注入头，并校验 Redis 会话/黑名单（注销、单点登录）。
- * 本地直连（无 X-Kong-Request-Id）时不设置身份，由业务自行处理公开路径。
+ * 登录服务：gateway 模式下信任网关注入头，并校验 Redis 会话/黑名单（注销、单点登录）。
+ * 本地直连（无 X-Gateway-Request-Id）时不设置身份，由业务自行处理公开路径。
  */
 @Component
-public class KongIdentityFilter extends OncePerRequestFilter {
+public class GatewayIdentityFilter extends OncePerRequestFilter {
 
     @Autowired
     private GatewayAuthProperties gatewayAuthProperties;
@@ -32,8 +32,8 @@ public class KongIdentityFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            Optional<JwtPrincipal> principal = GatewayAuthSupport.principalFromKong(request);
-            if (principal.isPresent() && gatewayAuthProperties.isKongMode()) {
+            Optional<JwtPrincipal> principal = GatewayAuthSupport.principalFromGateway(request);
+            if (principal.isPresent() && gatewayAuthProperties.isGatewayMode()) {
                 String token = GatewayAuthSupport.bearerToken(request);
                 JwtPrincipal p = principal.get();
                 if (token == null || !jwtTokenService.isSessionValid(token, p.getSubject(), p.getAudience())) {

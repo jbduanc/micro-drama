@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// SessionStore Kong 模式下校验 Redis 登录态/黑名单（键格式与 Java AuthRedisKeys 一致）。
+// SessionStore gateway 模式下校验 Redis 登录态/黑名单（键格式与 Java AuthRedisKeys 一致）。
 type SessionStore interface {
 	SessionValid(ctx context.Context, token, subject, audience string) (bool, error)
 }

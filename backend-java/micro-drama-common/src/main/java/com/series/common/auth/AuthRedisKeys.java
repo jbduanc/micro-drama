@@ -15,4 +15,12 @@ public final class AuthRedisKeys {
     public static String blacklist(AuthAudience audience, String token) {
         return audience.getValue() + ":blacklist:" + token;
     }
+
+    public static String refreshToken(AuthAudience audience, String refreshId) {
+        return audience.getValue() + ":refresh:token:" + refreshId;
+    }
+
+    public static String refreshSubject(AuthAudience audience, String subject) {
+        return audience.getValue() + ":refresh:subject:" + subject;
+    }
 }

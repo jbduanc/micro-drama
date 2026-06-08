@@ -20,7 +20,7 @@ jwt:
 
 auth:
   gateway:
-    mode: kong
+    mode: gateway
 
 grpc:
   client:
