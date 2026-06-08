@@ -1,5 +1,25 @@
-# 生产示例：~/services/docker-compose-services.yml
-# 配置目录须与 volumes 一致：./config/backend-admin → 容器 /config
+# =============================================================================
+# 生产：~/services/docker-compose-services.yml
+# 版本：2026-06-08-memory-tuned（2核8G 个人项目）
+#
+# 内存策略（调优前 docker stats 参考值 → 目标上限）：
+#   backend-admin    531MB → 384MB  (Xmx280m)
+#   backend-content  721MB → 400MB  (Xmx300m)
+#   backend-user     665MB → 400MB  (Xmx300m)
+#   backend-payment  631MB → 400MB  (Xmx300m)
+#   gateway-auth     438MB → 320MB  (Xmx240m)
+#   backend-video     14MB → 128MB
+#   backend-transcoder 7MB → 256MB
+#   backend-chain      3MB →  64MB
+#   frontend-*        ~30MB →  64MB each
+#
+# 基础设施（不在本文件，需单独 docker update）：
+#   nexus 1.3GB→768m | kafka 1.2GB→512m | postgres→256m | redis→96m
+#
+# 应用：cp 本文件到 ~/services/docker-compose-services.yml 后
+#   cd ~/services && docker compose up -d
+# 回滚：docker compose -f docker-compose-services.yml.bak.<时间戳> up -d
+# =============================================================================
 version: '3.8'
 
 networks:
@@ -7,12 +27,32 @@ networks:
     name: app-network
     external: true
 
+x-java-env: &java-env
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: postgres
+  DB_USER: postgres
+  DB_PASSWORD: "${DB_PASSWORD:-CHANGE_ME}"
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: "${REDIS_PASSWORD:-CHANGE_ME}"
+  SPRING_CONFIG_ADDITIONAL_LOCATION: file:/config/application.yml
+
 services:
   backend-admin:
     image: 127.0.0.1:8082/backend-micro-drama-admin:latest
     container_name: backend-admin
+    mem_limit: 384m
+    memswap_limit: 384m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=384m"
+      - "micro-drama.jvm-xmx=280m"
     volumes:
       - ./config/backend-admin:/config:ro
+    environment:
+      <<: *java-env
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx280m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
     ports:
       - "6001:6001"
     restart: unless-stopped
@@ -20,8 +60,17 @@ services:
   backend-content:
     image: 127.0.0.1:8082/backend-micro-drama-content:latest
     container_name: backend-content
+    mem_limit: 400m
+    memswap_limit: 400m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=400m"
+      - "micro-drama.jvm-xmx=300m"
     volumes:
       - ./config/backend-content:/config:ro
+    environment:
+      <<: *java-env
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx300m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
     ports:
       - "6002:6002"
     restart: unless-stopped
@@ -29,8 +78,17 @@ services:
   backend-user:
     image: 127.0.0.1:8082/backend-micro-drama-user:latest
     container_name: backend-user
+    mem_limit: 400m
+    memswap_limit: 400m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=400m"
+      - "micro-drama.jvm-xmx=300m"
     volumes:
       - ./config/backend-user:/config:ro
+    environment:
+      <<: *java-env
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx300m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
     ports:
       - "6003:6003"
     restart: unless-stopped
@@ -38,10 +96,18 @@ services:
   backend-payment:
     image: 127.0.0.1:8082/backend-micro-drama-payment:latest
     container_name: backend-payment
+    mem_limit: 400m
+    memswap_limit: 400m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=400m"
+      - "micro-drama.jvm-xmx=300m"
     volumes:
       - ./config/backend-payment:/config:ro
     environment:
-      - CHAIN_GRPC_ADDRESS=static://backend-chain:9092
+      <<: *java-env
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx300m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m"
+      CHAIN_GRPC_ADDRESS: static://backend-chain:9092
     ports:
       - "6004:6004"
     depends_on:
@@ -51,10 +117,15 @@ services:
   backend-video:
     image: 127.0.0.1:8082/backend-micro-drama-video:latest
     container_name: backend-video
+    mem_limit: 128m
+    memswap_limit: 128m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=128m"
     volumes:
       - ./config/backend-video:/config:ro
     environment:
-      - CONFIG_FILE=/config/application.yml
+      CONFIG_FILE: /config/application.yml
     ports:
       - "6005:6005"
     restart: unless-stopped
@@ -62,10 +133,15 @@ services:
   backend-transcoder:
     image: 127.0.0.1:8082/backend-micro-drama-transcoder:latest
     container_name: backend-transcoder
+    mem_limit: 256m
+    memswap_limit: 256m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=256m"
     volumes:
       - ./config/backend-transcoder:/config:ro
     environment:
-      - CONFIG_FILE=/config/application.yml
+      CONFIG_FILE: /config/application.yml
     ports:
       - "6006:6006"
     restart: unless-stopped
@@ -73,8 +149,59 @@ services:
   backend-chain:
     image: 127.0.0.1:8082/backend-micro-drama-chain:latest
     container_name: backend-chain
+    mem_limit: 64m
+    memswap_limit: 64m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=64m"
     volumes:
       - ./config/backend-chain:/config:ro
+    environment:
+      CONFIG_FILE: /config/application.yml
     ports:
       - "6007:9092"
+    restart: unless-stopped
+
+  gateway-auth:
+    image: 127.0.0.1:8082/backend-micro-drama-gateway-auth:latest
+    container_name: gateway-auth
+    mem_limit: 320m
+    memswap_limit: 320m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=320m"
+      - "micro-drama.jvm-xmx=240m"
+    volumes:
+      - ./config/gateway-auth:/config:ro
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx240m -XX:+UseG1GC -XX:MaxMetaspaceSize=96m"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-CHANGE_ME}"
+      JWT_SECRET: "${JWT_SECRET:-CHANGE_ME}"
+      AUTH_COOKIE_DOMAIN: .dramadjbo.com
+      AUTH_COOKIE_SECURE: "true"
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/config/application.yml
+    ports:
+      - "6010:6010"
+    restart: unless-stopped
+
+  frontend-admin:
+    image: 127.0.0.1:8082/frontend-micro-drama-admin:latest
+    container_name: frontend-admin
+    mem_limit: 64m
+    memswap_limit: 64m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=64m"
+    restart: unless-stopped
+
+  frontend-mini-app:
+    image: 127.0.0.1:8082/frontend-micro-drama-mini-app:latest
+    container_name: frontend-mini-app
+    mem_limit: 64m
+    memswap_limit: 64m
+    labels:
+      - "micro-drama.config-version=2026-06-08-memory-tuned"
+      - "micro-drama.memory-limit=64m"
     restart: unless-stopped

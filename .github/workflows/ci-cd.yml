@@ -39,6 +39,10 @@ on:
         description: 构建 backend-java/micro-drama-gateway-auth（镜像 backend-micro-drama-gateway-auth，Traefik ForwardAuth）
         type: boolean
         default: true
+      build_all_java_backends:
+        description: 构建全部 Java 后端（admin/user/content/payment/gateway-auth；common 变更后建议勾选）
+        type: boolean
+        default: false
       build_frontend:
         description: 构建 frontend 下工程（镜像 frontend-<项目目录名>）
         type: boolean
@@ -113,6 +117,7 @@ jobs:
               - 'backend-java/micro-drama-gateway-auth/**'
               - 'backend-java/micro-drama-parent/**'
               - 'backend-java/micro-drama-common/**'
+              - 'deploy/config/gateway-auth/**'
             frontend_admin:
               - 'frontend/micro-drama-admin/**'
             frontend_mini_app:
@@ -192,7 +197,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_admin == true) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.build_admin == true || inputs.build_all_java_backends == true)) ||
       (github.event_name == 'push' && needs.changes.outputs.admin == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-admin
@@ -286,7 +291,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_user == true) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.build_user == true || inputs.build_all_java_backends == true)) ||
       (github.event_name == 'push' && needs.changes.outputs.user == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-user
@@ -380,7 +385,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_content == true) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.build_content == true || inputs.build_all_java_backends == true)) ||
       (github.event_name == 'push' && needs.changes.outputs.content == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-content
@@ -694,7 +699,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_payment == true) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.build_payment == true || inputs.build_all_java_backends == true)) ||
       (github.event_name == 'push' && needs.changes.outputs.payment == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-payment
@@ -782,7 +787,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes, backend-common]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.build_gateway_auth == true) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.build_gateway_auth == true || inputs.build_all_java_backends == true)) ||
       (github.event_name == 'push' && needs.changes.outputs.gateway_auth == 'true')
     env:
       IMAGE_NAME: backend-micro-drama-gateway-auth
