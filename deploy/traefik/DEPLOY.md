@@ -224,6 +224,10 @@ curl https://api.dramadjbo.com/user-api/auth/user/info \
 
 # 4. gateway-auth 健康
 curl http://127.0.0.1:6010/actuator/health
+
+# 5. ForwardAuth 入口（应 401 无凭证，但响应体不应含 www-authenticate: Basic）
+curl -i http://127.0.0.1:6010/auth/verify
+# 正常：HTTP/1.1 401，无 Basic realm；异常：含 WWW-Authenticate: Basic realm="Realm" → gateway-auth 缺 SecurityConfig
 ```
 
 浏览器：
