@@ -29,11 +29,8 @@ export const authService = {
   },
 
   async refreshSession(): Promise<TokenPair | null> {
-    const refreshToken = useAuthStore.getState().refreshToken
-    const res = await http.post<Result<TokenPair>>(
-      "/oauth2/refresh",
-      refreshToken ? { refreshToken } : {},
-    )
+    // 优先用 api 域 httpOnly Cookie 中的 refresh；避免 localStorage 过期值覆盖 Cookie
+    const res = await http.post<Result<TokenPair>>("/oauth2/refresh", {})
     const data = res.data?.data
     if (!data?.accessToken || !data?.refreshToken) {
       return null

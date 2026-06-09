@@ -33,10 +33,8 @@ export function setupAxiosAuth(client: AxiosInstance): void {
     if (token) {
       config.headers.set("Authorization", `Bearer ${token}`)
     }
-    const refreshToken = useAuthStore.getState().refreshToken
-    if (refreshToken) {
-      config.headers.set("X-Refresh-Token", refreshToken)
-    }
+    // refresh 走 httpOnly Cookie（withCredentials）；勿传 X-Refresh-Token，
+    // localStorage 里的旧值会优先于 Cookie 导致网关静默 refresh 失败
     return config
   })
 

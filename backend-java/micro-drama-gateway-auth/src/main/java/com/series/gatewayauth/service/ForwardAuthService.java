@@ -28,25 +28,31 @@ public class ForwardAuthService {
     private AuthCookieSupport authCookieSupport;
 
     public ForwardAuthResult authenticate(HttpServletRequest request, GatewayAudPolicy policy) {
-        String access = extractAccess(request);
-        String refresh = extractRefresh(request);
+        String bearer = GatewayAuthSupport.bearerToken(request);
+        String cookieAccess = authCookieSupport.readCookie(request, AuthCookieNames.ACCESS);
 
-        if (access != null) {
-            Optional<ValidatedToken> validated = validateAccess(access, policy);
+        // Bearer（localStorage）可能滞后；Cookie 在网关静默 refresh 后会更新，需依次尝试
+        if (bearer != null) {
+            Optional<ValidatedToken> validated = validateAccess(bearer, policy);
             if (validated.isPresent()) {
-                return ForwardAuthResult.ok(validated.get(), access, null, false);
+                return ForwardAuthResult.ok(validated.get(), bearer, null, false);
+            }
+        }
+        if (cookieAccess != null && !cookieAccess.equals(bearer)) {
+            Optional<ValidatedToken> validated = validateAccess(cookieAccess, policy);
+            if (validated.isPresent()) {
+                return ForwardAuthResult.ok(validated.get(), cookieAccess, null, false);
             }
         }
 
-        if (refresh != null) {
-            Optional<AuthTokenPair> refreshed = refreshAccess(refresh, policy);
-            if (refreshed.isPresent()) {
-                AuthTokenPair pair = refreshed.get();
-                AuthAudience aud = jwtTokenService.getAudience(pair.getAccessToken());
-                if (policy.allows(aud)) {
-                    ValidatedToken token = new ValidatedToken(jwtTokenService.getSubject(pair.getAccessToken()), aud);
-                    return ForwardAuthResult.ok(token, pair.getAccessToken(), pair, true);
-                }
+        // 静默 refresh：优先 Cookie（httpOnly 权威），再尝试 X-Refresh-Token（小程序等 fallback）
+        Optional<AuthTokenPair> refreshed = tryRefresh(request, policy);
+        if (refreshed.isPresent()) {
+            AuthTokenPair pair = refreshed.get();
+            AuthAudience aud = jwtTokenService.getAudience(pair.getAccessToken());
+            if (policy.allows(aud)) {
+                ValidatedToken token = new ValidatedToken(jwtTokenService.getSubject(pair.getAccessToken()), aud);
+                return ForwardAuthResult.ok(token, pair.getAccessToken(), pair, true);
             }
         }
 
@@ -78,19 +84,18 @@ public class ForwardAuthService {
         return authTokenIssueService.refresh(refresh, AuthAudience.USER);
     }
 
-    private String extractAccess(HttpServletRequest request) {
-        String bearer = GatewayAuthSupport.bearerToken(request);
-        if (bearer != null) {
-            return bearer;
+    private Optional<AuthTokenPair> tryRefresh(HttpServletRequest request, GatewayAudPolicy policy) {
+        String cookieRefresh = authCookieSupport.readCookie(request, AuthCookieNames.REFRESH);
+        if (cookieRefresh != null && !cookieRefresh.isEmpty()) {
+            Optional<AuthTokenPair> fromCookie = refreshAccess(cookieRefresh, policy);
+            if (fromCookie.isPresent()) {
+                return fromCookie;
+            }
         }
-        return authCookieSupport.readCookie(request, AuthCookieNames.ACCESS);
-    }
-
-    private String extractRefresh(HttpServletRequest request) {
-        String header = request.getHeader(GatewayAuthSupport.REFRESH_HEADER);
-        if (header != null && !header.trim().isEmpty()) {
-            return header.trim();
+        String headerRefresh = request.getHeader(GatewayAuthSupport.REFRESH_HEADER);
+        if (headerRefresh != null && !headerRefresh.trim().isEmpty()) {
+            return refreshAccess(headerRefresh.trim(), policy);
         }
-        return authCookieSupport.readCookie(request, AuthCookieNames.REFRESH);
+        return Optional.empty();
     }
 }
