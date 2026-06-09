@@ -205,6 +205,8 @@ server {
 
 完整规则见 [`dynamic/routes.yml`](./dynamic/routes.yml)。
 
+**注意**：`OPTIONS` 预检必须绕过 ForwardAuth（见 `*-api-options` 路由，priority 200）。否则浏览器对 `POST /content-api/...` 等写操作会先收到 401，表现为仅 POST 失败、GET 正常。
+
 ---
 
 ## 8. 验证清单

@@ -24,6 +24,9 @@ auth:
   gateway:
     mode: gateway
 
+cors:
+  allowed-origins: https://admin.dramadjbo.com
+
 grpc:
   server:
     port: 9091

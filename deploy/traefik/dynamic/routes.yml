@@ -63,6 +63,14 @@ http:
       service: backend-admin
       priority: 90
 
+    # CORS 预检不得走 ForwardAuth（无 Authorization/Cookie），否则 POST 等跨域写操作 401
+    admin-api-options:
+      rule: "PathPrefix(`/admin-api`) && Method(`OPTIONS`)"
+      entryPoints: [web]
+      service: backend-admin
+      middlewares: [cors-api]
+      priority: 200
+
     admin-api-protected:
       rule: "PathPrefix(`/admin-api`)"
       entryPoints: [web]
@@ -84,6 +92,13 @@ http:
       service: backend-user
       priority: 90
 
+    user-api-options:
+      rule: "PathPrefix(`/user-api`) && Method(`OPTIONS`)"
+      entryPoints: [web]
+      service: backend-user
+      middlewares: [cors-api]
+      priority: 200
+
     user-api-protected:
       rule: "PathPrefix(`/user-api`)"
       entryPoints: [web]
@@ -97,6 +112,13 @@ http:
       entryPoints: [web]
       service: backend-content
       priority: 90
+
+    content-api-options:
+      rule: "PathPrefix(`/content-api`) && Method(`OPTIONS`)"
+      entryPoints: [web]
+      service: backend-content
+      middlewares: [cors-api]
+      priority: 200
 
     content-api-protected:
       rule: "PathPrefix(`/content-api`)"
@@ -119,6 +141,13 @@ http:
       service: backend-payment
       priority: 90
 
+    payment-api-options:
+      rule: "PathPrefix(`/payment-api`) && Method(`OPTIONS`)"
+      entryPoints: [web]
+      service: backend-payment
+      middlewares: [cors-api]
+      priority: 200
+
     payment-api-protected:
       rule: "PathPrefix(`/payment-api`)"
       entryPoints: [web]
@@ -133,6 +162,13 @@ http:
       service: backend-video
       middlewares: [strip-video-prefix, cors-api]
       priority: 100
+
+    video-api-options:
+      rule: "PathPrefix(`/video-api`) && Method(`OPTIONS`)"
+      entryPoints: [web]
+      service: backend-video
+      middlewares: [strip-video-prefix, cors-api]
+      priority: 200
 
     video-api-protected:
       rule: "PathPrefix(`/video-api`)"
