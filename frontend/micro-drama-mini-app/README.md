@@ -19,15 +19,12 @@
 
 | 服务 | 默认端口 | 环境变量 |
 | --- | --- | --- |
+| user-api | 6003 | `USER_API_TARGET` / 生产默认 `https://api.dramadjbo.com/user-api` |
 | content-api | 6002 | `CONTENT_API_TARGET` / 生产默认 `https://api.dramadjbo.com/content-api` |
 | video-api | 8080 | `VIDEO_API_TARGET` |
 | payment-api | 8081 | `PAYMENT_API_TARGET` |
 
-content-api 需 JWT。本地开发在 `.env.local` 设置：
-
-```env
-NEXT_PUBLIC_DEV_JWT_TOKEN=你的有效JWT
-```
+content-api 需 JWT。在 Telegram 小程序内打开时会自动调用 `/auth/telegram` 登录并签发 token。
 
 ## 快速开始
 
@@ -43,8 +40,9 @@ npm run dev
 ## Telegram Mini App
 
 1. 在 BotFather 创建 Bot 并配置 Web App URL（指向部署域名）
-2. 页面已加载 `telegram-web-app.js`，自动读取 Telegram 用户信息
-3. 生产环境设置 `NEXT_PUBLIC_SITE_URL` 为公网 HTTPS 域名
+2. 后端 `micro-drama-user` 配置 `TELEGRAM_BOT_TOKEN`（与 Bot 一致）
+3. 页面加载 `telegram-web-app.js`，启动时自动用 `initData` 调用 `/auth/telegram` 登录
+4. 生产环境设置 `NEXT_PUBLIC_SITE_URL` 为公网 HTTPS 域名
 
 ## SEO
 
@@ -63,6 +61,6 @@ src/
 └── lib/telegram/        # Telegram WebApp 适配
 ```
 
-## 待对接（user 服务尚未实现）
+## 待对接（user 服务）
 
-个人中心余额、支付记录、观看记录当前使用 localStorage 占位，接口层已预留，后续可替换为 `backend-java/micro-drama-user` API。
+个人中心余额、支付记录、观看记录当前部分使用 localStorage，登录与用户资料已对接 `backend-java/micro-drama-user`。

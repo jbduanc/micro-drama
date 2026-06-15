@@ -2,14 +2,8 @@ const ACCESS_KEY = "micro_drama_access_token";
 const REFRESH_KEY = "micro_drama_refresh_token";
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") {
-    return process.env.NEXT_PUBLIC_DEV_JWT_TOKEN || null;
-  }
-  return (
-    localStorage.getItem(ACCESS_KEY) ||
-    process.env.NEXT_PUBLIC_DEV_JWT_TOKEN ||
-    null
-  );
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACCESS_KEY);
 }
 
 export function getRefreshToken(): string | null {

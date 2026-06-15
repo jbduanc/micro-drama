@@ -30,7 +30,5 @@ auth:
 telegram:
   bot-token: "${TELEGRAM_BOT_TOKEN}"
 
-auth.dev.enabled: false
-
 cors:
   allowed-origins: https://your-mini-app-domain

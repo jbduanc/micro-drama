@@ -44,11 +44,6 @@ public class AppUserServiceImpl extends ServiceImpl<AppUserMapper, AppUser> impl
         return user;
     }
 
-    @Override
-    public AppUser getOrCreateDevUser(String telegramId, String nickname) {
-        return upsertTelegramUser(telegramId, nickname != null ? nickname : "Dev User", "");
-    }
-
     private static String emptyIfNull(String s) {
         return s == null ? "" : s;
     }

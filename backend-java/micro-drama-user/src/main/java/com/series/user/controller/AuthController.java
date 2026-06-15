@@ -1,13 +1,13 @@
 package com.series.user.controller;
 
 import com.series.common.auth.TelegramInitDataValidator;
+import com.series.common.auth.TelegramUserInfo;
 import com.series.common.auth.AuthAudience;
 import com.series.common.auth.AuthCookieSupport;
 import com.series.common.auth.AuthTokenIssueService;
 import com.series.common.auth.AuthTokenPair;
 import com.series.common.auth.GatewayAuthSupport;
 import com.series.common.entity.Result;
-import com.series.user.dto.DevInitRequest;
 import com.series.user.dto.LoginTokenDTO;
 import com.series.user.dto.TelegramLoginRequest;
 import com.series.user.dto.UserProfileDTO;
@@ -37,9 +37,6 @@ public class AuthController {
 
     @Value("${telegram.bot-token:}")
     private String telegramBotToken;
-
-    @Value("${auth.dev.enabled:false}")
-    private boolean devAuthEnabled;
 
     @Autowired
     private IAppUserService appUserService;
@@ -71,41 +68,16 @@ public class AuthController {
         if (!TelegramInitDataValidator.validate(request.getInitData(), telegramBotToken)) {
             return Result.error("Telegram initData 校验失败");
         }
-        Long tgId = TelegramInitDataValidator.parseTelegramUserId(request.getInitData());
-        if (tgId == null) {
-            return Result.error("无法解析 Telegram 用户 ID");
+        TelegramUserInfo tgUser = TelegramInitDataValidator.parseTelegramUser(request.getInitData());
+        if (tgUser == null || tgUser.getId() == null) {
+            return Result.error("无法解析 Telegram 用户信息");
         }
-        String telegramId = String.valueOf(tgId);
+        String telegramId = String.valueOf(tgUser.getId());
         AppUser user = appUserService.upsertTelegramUser(
                 telegramId,
-                request.getNickname(),
-                request.getAvatar()
+                tgUser.displayName(),
+                tgUser.getPhotoUrl()
         );
-        return Result.ok(writeLoginResponse(response, authSessionService.issueToken(user)));
-    }
-
-    /**
-     * 开发阶段无 Telegram 账号时初始化用户（需 auth.dev.enabled=true）。
-     */
-    @PostMapping("/dev/init")
-    public Result<LoginTokenDTO> devInit(@RequestBody(required = false) DevInitRequest request,
-                                         HttpServletResponse response) {
-        if (!devAuthEnabled) {
-            return Result.error("开发登录未启用，请设置 AUTH_DEV_ENABLED=true");
-        }
-        String telegramId = "dev-local";
-        String nickname = "Dev User";
-        if (request != null) {
-            if (request.getTelegramId() != null && !request.getTelegramId().isEmpty()) {
-                telegramId = request.getTelegramId();
-            }
-            if (request.getNickname() != null && !request.getNickname().isEmpty()) {
-                nickname = request.getNickname();
-            }
-        }
-        AppUser user = appUserService.getOrCreateDevUser(telegramId, nickname);
-        user.setAuthProvider("dev");
-        appUserService.updateById(user);
         return Result.ok(writeLoginResponse(response, authSessionService.issueToken(user)));
     }
 

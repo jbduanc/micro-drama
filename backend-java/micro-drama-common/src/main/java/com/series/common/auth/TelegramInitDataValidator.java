@@ -1,5 +1,8 @@
 package com.series.common.auth;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
@@ -48,30 +51,29 @@ public final class TelegramInitDataValidator {
     }
 
     public static Long parseTelegramUserId(String initData) {
+        TelegramUserInfo user = parseTelegramUser(initData);
+        return user != null ? user.getId() : null;
+    }
+
+    public static TelegramUserInfo parseTelegramUser(String initData) {
         Map<String, String> params = parseQuery(initData);
         String userJson = params.get("user");
         if (userJson == null || userJson.isEmpty()) {
             return null;
         }
-        int idIdx = userJson.indexOf("\"id\":");
-        if (idIdx < 0) {
-            idIdx = userJson.indexOf("\"id\"");
-        }
-        if (idIdx < 0) {
-            return null;
-        }
-        int start = userJson.indexOf(':', idIdx) + 1;
-        int end = userJson.indexOf(',', start);
-        if (end < 0) {
-            end = userJson.indexOf('}', start);
-        }
-        if (end < 0) {
-            return null;
-        }
-        String idStr = userJson.substring(start, end).trim();
         try {
-            return Long.parseLong(idStr);
-        } catch (NumberFormatException e) {
+            JSONObject obj = JSON.parseObject(userJson);
+            if (obj == null || obj.getLong("id") == null) {
+                return null;
+            }
+            TelegramUserInfo info = new TelegramUserInfo();
+            info.setId(obj.getLong("id"));
+            info.setFirstName(obj.getString("first_name"));
+            info.setLastName(obj.getString("last_name"));
+            info.setUsername(obj.getString("username"));
+            info.setPhotoUrl(obj.getString("photo_url"));
+            return info;
+        } catch (Exception e) {
             return null;
         }
     }

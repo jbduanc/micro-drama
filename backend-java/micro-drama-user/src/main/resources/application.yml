@@ -35,8 +35,6 @@ auth:
   cookie:
     domain: ${AUTH_COOKIE_DOMAIN:}
     secure: ${AUTH_COOKIE_SECURE:true}
-  dev:
-    enabled: ${AUTH_DEV_ENABLED:false}
 
 telegram:
   bot-token: ${TELEGRAM_BOT_TOKEN:}

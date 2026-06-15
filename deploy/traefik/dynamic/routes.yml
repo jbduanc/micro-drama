@@ -80,7 +80,7 @@ http:
 
     # --- user-api ---
     user-auth-public:
-      rule: "PathPrefix(`/user-api/auth/telegram`) || PathPrefix(`/user-api/auth/dev/init`) || PathPrefix(`/user-api/auth/web3/challenge`) || PathPrefix(`/user-api/auth/refresh`)"
+      rule: "PathPrefix(`/user-api/auth/telegram`) || PathPrefix(`/user-api/auth/web3/challenge`) || PathPrefix(`/user-api/auth/refresh`)"
       entryPoints: [web]
       service: backend-user
       middlewares: [cors-api]

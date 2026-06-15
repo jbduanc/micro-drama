@@ -1,4 +1,5 @@
 import { API_BASE } from "@/lib/api/client";
+import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import { setTokens } from "@/lib/auth/token";
 import type { ApiResult, UserProfile } from "@/types";
 
@@ -28,13 +29,15 @@ export async function loginWithTelegram(initData: string): Promise<UserProfile> 
   return mapUser(data.user);
 }
 
-export async function loginWithDevUser(payload?: {
-  telegramId?: string;
-  nickname?: string;
-}): Promise<UserProfile> {
-  const data = await postJson<LoginTokenPayload>("/auth/dev/init", payload);
-  setTokens(data.accessToken, data.refreshToken);
-  return mapUser(data.user);
+export async function fetchUserInfo(): Promise<UserProfile> {
+  const res = await authenticatedFetch(API_BASE.user, "/auth/user/info");
+  const json = (await res.json()) as ApiResult<
+    UserProfile & { avatarUrl?: string }
+  >;
+  if (!res.ok || (json.code != null && json.code !== 0 && json.code !== 200) || !json.data) {
+    throw new Error(json.msg || json.message || "获取用户信息失败");
+  }
+  return mapUser(json.data);
 }
 
 function mapUser(u: LoginTokenPayload["user"]): UserProfile {

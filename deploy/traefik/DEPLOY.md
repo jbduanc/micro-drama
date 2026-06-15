@@ -198,7 +198,7 @@ server {
 | 路径 |
 |------|
 | `GET/POST /admin-api/oauth2/authorize-url`、`/login/google`、`/refresh` |
-| `POST /user-api/auth/telegram`、`/dev/init`、`/web3/challenge`、`/refresh` |
+| `POST /user-api/auth/telegram`、`/web3/challenge`、`/refresh` |
 | `GET /payment-api/healthz` |
 | `GET /video-api/healthz`、`POST /video-api/v1/video/oss-event` |
 | 各服务 `/actuator/**` |

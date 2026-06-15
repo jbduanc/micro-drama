@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { fetchUserInfo, loginWithTelegram } from "@/lib/api/auth";
 import {
   addBalance,
   deductBalance,
@@ -12,6 +13,8 @@ import {
   saveProfile,
   unlockEpisode,
 } from "@/lib/api/user";
+import { clearAccessToken, getAccessToken } from "@/lib/auth/token";
+import { getInitData, initTelegramWebApp } from "@/lib/telegram/webapp";
 import type { PaymentOrder, UserProfile, WatchRecord } from "@/types";
 
 type AuthState = {
@@ -19,7 +22,10 @@ type AuthState = {
   payments: PaymentOrder[];
   watchHistory: WatchRecord[];
   unlockedEpisodeIds: Set<string>;
+  authReady: boolean;
+  authError: string | null;
   hydrate: () => void;
+  bootstrapAuth: () => Promise<void>;
   setProfile: (profile: UserProfile) => void;
   topUp: (amount: number) => void;
   markEpisodeUnlocked: (episodeId: string) => void;
@@ -34,6 +40,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   payments: [],
   watchHistory: [],
   unlockedEpisodeIds: new Set(),
+  authReady: false,
+  authError: null,
 
   hydrate: () => {
     set({
@@ -42,6 +50,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       watchHistory: loadWatchHistory(),
       unlockedEpisodeIds: new Set(loadUnlockedEpisodeIds()),
     });
+  },
+
+  bootstrapAuth: async () => {
+    get().hydrate();
+    initTelegramWebApp();
+
+    const initData = getInitData();
+    if (initData) {
+      try {
+        const profile = await loginWithTelegram(initData);
+        saveProfile(profile);
+        set({ profile, authReady: true, authError: null });
+        return;
+      } catch (e) {
+        clearAccessToken();
+        set({
+          authReady: true,
+          authError: e instanceof Error ? e.message : "Telegram 登录失败",
+        });
+        return;
+      }
+    }
+
+    if (getAccessToken()) {
+      try {
+        const profile = await fetchUserInfo();
+        saveProfile(profile);
+        set({ profile, authReady: true, authError: null });
+        return;
+      } catch {
+        clearAccessToken();
+      }
+    }
+
+    set({ authReady: true, authError: null });
   },
 
   setProfile: (profile) => {

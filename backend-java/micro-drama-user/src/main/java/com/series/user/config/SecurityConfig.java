@@ -10,7 +10,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * 用户服务负责 Telegram/开发登录与注销；Traefik ForwardAuth 校验 JWT，本服务校验 Redis 会话/黑名单。
+ * 用户服务负责 Telegram 登录与注销；Traefik ForwardAuth 校验 JWT，本服务校验 Redis 会话/黑名单。
  */
 @Configuration
 @EnableWebSecurity

@@ -118,7 +118,7 @@ export function DramaListClient() {
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
             {error}
             <p className="mt-2 text-xs text-red-300/80">
-              请在 .env.local 设置 NEXT_PUBLIC_DEV_JWT_TOKEN 后重启 dev 服务
+              请从 Telegram 小程序登录，或检查 content-api 服务是否可用
             </p>
           </div>
         )}

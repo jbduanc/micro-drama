@@ -14,6 +14,10 @@ export function isTelegramEnv(): boolean {
   return Boolean(getTelegramWebApp()?.initData);
 }
 
+export function getInitData(): string {
+  return getTelegramWebApp()?.initData ?? "";
+}
+
 export function getTelegramUser() {
   return getTelegramWebApp()?.initDataUnsafe.user ?? null;
 }

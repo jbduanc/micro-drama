@@ -8,6 +8,4 @@ public interface IAppUserService extends IService<AppUser> {
     AppUser findByTelegramId(String telegramId);
 
     AppUser upsertTelegramUser(String telegramId, String nickname, String avatar);
-
-    AppUser getOrCreateDevUser(String telegramId, String nickname);
 }
